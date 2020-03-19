@@ -1,8 +1,10 @@
 /***************************************************
-Rotary cellphone original firmware by Justine Haupt. 
+Rotary cellphone original firmware written by Justine Haupt. 
+MIT license, all text above must be included in any redistribution.
+
 1/12/2020: v1.0
 1/13/2020: v1.1
-MIT license, all text above must be included in any redistribution.
+1/18/2020: v1.1.1
 
   Cellphone program for ATMega2560-based board controlling the Adafruit FONA v1. Adafruit libraries are not used for the FONA
   but this does use the Adafruit 2.13" Tri-Color E-Ink display with the associated libraries. The license from Lady Ada for
@@ -99,9 +101,9 @@ const byte SignalButton = 34;     //Hold to check signal strengh
 const byte BatteryButton = 37;    //Hold to check battery level
 const byte SaButton = 35;    //Hold to check battery level
 const byte FnButton = 32;    //Hold to check battery level
-const byte ModeSwitch_631 = 18;    //SP3T switch positioned to append a certain area code to all calls
+const byte ModeSwitch_631 = 20;    //SP3T switch positioned to append a certain area code to all calls
 const byte ModeSwitch_NP = 19;		//SP3T switch posiioned to "No Prepend" mode, in which a full 10-digit phone number is needed.
-const byte ModeSwitch_alt = 20;    //SP3T switch positioned to switch to taking the alternate function of each button.
+const byte ModeSwitch_alt = 18;    //SP3T switch positioned to switch to taking the alternate function of each button.
 const byte RotaryPulseIn = 39;          //The pin that reads the state of the rotary dial.
 
 SoftwareSerial FONAserial(53, 9); //Rx, Tx
@@ -191,7 +193,7 @@ void loop(){
 		mode = 3;
 	}
 
-	//*********************ROTARY DIAL & Fn BUTTON*******************************************************************************
+	//*********************ROTARY DIAL INPUT & FUNCTION BUTTON*******************************************************************************
 	if (digitalRead(ModeSwitch_631) == LOW || digitalRead(ModeSwitch_NP) == LOW){
 		if (digitalRead(FnButton) == LOW){
 			StarPoundRotaryIn();	//This function doesn't loop on it's own, but rather depends on the main "void loop" to do its work.
@@ -207,17 +209,6 @@ void loop(){
 	//*********************CLEAR (C) BUTTON**************************************************************************
 	if (digitalRead(ClearButton) == LOW){
 		delay(200);
-		//IF AFTER A SMALL DELAY THE HOOK BUTTON IS ALSO PRESSED AND CALLON==FALSE, PLACE A CALL
-		if (CallOn == false){
-			if (digitalRead(HookButton) == LOW){
-				if (digitalRead(ModeSwitch_631) == LOW){	//Check mode switch
-					MakeCall631();   //Make a call using the number stored in the buffer as input from the rotary dial, prepended with 631
-				}
-				else {	//If in either No-Prepend or Alt mode
-					MakeCall();   //Make a call using the number stored in the buffer as input from the rotary dial
-				}
-			}
-		}
 		//IF THE CLEAR BUTTON IS STILL DEPRESSED, CLEAR THE BUFFER
 		if (digitalRead(ClearButton) == LOW){ 
 			ClearBuffer();   //Clear whatever number has been entered so far
@@ -230,23 +221,19 @@ void loop(){
 
 	//*********************HOOK (H) BUTTON***************************************************************************
 	if (digitalRead(HookButton) == LOW){   //Check CALL button
-
+		//PLACE A CALL IF THE ROTARY HAS BEEN USED & AT LEAST 7 DIGITS WERE DIALED
+		if (newrotaryinput = true && PNumber[6] != 99){
+			if (digitalRead(ModeSwitch_631) == LOW){	//Check mode switch
+				MakeCall631();   //Make a call using the number stored in the buffer as input from the rotary dial, prepended with 631
+			}
+			else {	//If in either No-Prepend or Alt mode
+				MakeCall();   //Make a call using the number stored in the buffer as input from the rotary dial
+			}
+		}
 		//ANSWER INCOMING CALL IF CALLON = FALSE
-		if (CallOn == false){
+		else if (CallOn == false){
 			FONAserial.println("ATA");
 			//CallOn = true;	//!!!FIX!!!. The problem with turning the CallOn flag ON is that there's no check to see if a call was actually picked up.
-		}
-		//IF AFTER A SMALL DELAY THE CLEAR BUTTON IS ALSO PRESSED AND CALLON==FALSE, PLACE A CALL
-		delay(100);
-		if (CallOn == false){
-			if (digitalRead(ClearButton) == LOW){
-				if (digitalRead(ModeSwitch_631) == LOW){	//Check mode switch
-					MakeCall631();   //Make a call using the number stored in the buffer as input from the rotary dial, prepended with 631
-				}
-				else {	//If in either No-Prepend or Alt mode
-					MakeCall();   //Make a call using the number stored in the buffer as input from the rotary dial
-				}
-			}
 		}
 		delay(400);		
 		//IF STILL HOLDING THE HOOK BUTTON BY ITSELF, HANGUP CALL REGARDLESS OF CALLON STATE
@@ -271,17 +258,9 @@ void loop(){
 		else if (digitalRead(ModeSwitch_NP) == LOW){
 			mode = 2;
 			ClearBufferSilent();
-			PNumber[0] = 1;
-			PNumber[1] = 2;
-			PNumber[2] = 3;
-			PNumber[3] = 1;
-			PNumber[4] = 2;
-			PNumber[5] = 3;
-			PNumber[6] = 4;
-			PNumber[7] = 5;
-			PNumber[8] = 6;
-			PNumber[9] = 7;
-			ToneReport();
+			pagenum = 5;
+			PNumber[0] = 4;
+			RetrieveContact();
 			MakeCall();
 		}
 		//IF IN ALT MODE, SET CALL VOLUME
@@ -315,17 +294,9 @@ void loop(){
 		else if (digitalRead(ModeSwitch_NP) == LOW){
 			mode = 2;
 			ClearBufferSilent();
-			PNumber[0] = 1;
-			PNumber[1] = 2;
-			PNumber[2] = 3;
-			PNumber[3] = 1;
-			PNumber[4] = 2;
-			PNumber[5] = 3;
-			PNumber[6] = 4;
-			PNumber[7] = 5;
-			PNumber[8] = 6;
-			PNumber[9] = 7;
-			ToneReport();	
+			pagenum = 3;
+			PNumber[0] = 4;
+			RetrieveContact();
 			MakeCall();
 		}
 		//IF IN ALT MODE, SET RING VOLUME
@@ -360,29 +331,21 @@ void loop(){
 		else if (digitalRead(ModeSwitch_NP) == LOW){
 			mode = 2;
 			ClearBufferSilent();
-			PNumber[0] = 1;
-			PNumber[1] = 2;
-			PNumber[2] = 3;
-			PNumber[3] = 1;
-			PNumber[4] = 2;
-			PNumber[5] = 3;
-			PNumber[6] = 4;
-			PNumber[7] = 5;
-			PNumber[8] = 6;
-			PNumber[9] = 7;
-			ToneReport();	
+			pagenum = 8;
+			PNumber[0] = 4;
+			RetrieveContact();
 			MakeCall();
 		}
 		//IF IN ALT MODE, CALL CONTACT FROM CURRENT PAGE
 		else if (digitalRead(ModeSwitch_alt) == LOW){
 			mode = 3;
 			ClearBufferSilent();
+			newrotaryinput = false;
 			while (digitalRead(SaButton) == LOW){
 				RotaryIn();
 			}
 			if (PNumber[0] != 99){
-				RetrieveContacts();
-				ToneReport();
+				RetrieveContact();
 				MakeCall();			
 				newrotaryinput = false;
 				ClearBufferSilent();
@@ -391,13 +354,15 @@ void loop(){
 	}
 
 	//*********************ALT MODE (IN GENERAL)**********************************************************************************
-	//In addition to the ALT MODE stuff specific to each button, whenever in ALT mode do this:
+	//In addition to the ALT MODE stuff specific to each button this section is needed for general stuff.
+	//PREVENT CONTACTS PAGE FROM UPDATING IF THE ROTARY DIAL WAS USED BEFORE SWITCHING TO ALT MODE
 	if (digitalRead(ModeSwitch_alt) == LOW){
 		if ((mode == 1) || (mode == 2)){
 			ClearBufferSilent();			
 			newrotaryinput = false;	//Prevents display from updating upon entering ALT mode if a number was dialed previously but not used for another function.
 		}
 		mode = 3;
+		//DISPLAY CONTACTS PAGES
 		if (newrotaryinput == true){
 			DisplayContacts();
 			newrotaryinput = false;
