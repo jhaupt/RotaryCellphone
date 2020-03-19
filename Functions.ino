@@ -128,6 +128,7 @@ void ClearBuffer(){  //Clear the currently entered phone number
 	PNumber[14] = 99;
 	PNumber[15] = 99;
 	k = 0;    //Reset the position of the phone number
+	newrotaryinput = false;
 	BarGraphWipeUp();
 }
 
@@ -148,6 +149,7 @@ void ClearBufferSilent(){  //Clear the currently entered phone number
 	PNumber[13] = 99;
 	PNumber[14] = 99;
 	PNumber[15] = 99;
+	newrotaryinput = false;
 	k = 0;    //Reset the position of the phone number
 }
 
@@ -400,6 +402,7 @@ void SignalStrength(){
 }
 
 void MakeCall631(){
+	ToneReport();
 	FONAserial.print("ATD631");
 	Serial.print("ATD631");
 	FONAserial.print(PNumber[0]);
@@ -424,11 +427,12 @@ void MakeCall631(){
 	delay(500);
 	digitalWrite(StatusLED, LOW);
 	NewData = false;
-	newrotaryinput = false;
 	CallOn = true;
+	ClearBufferSilent();
 }
 
 void MakeCall(){
+	ToneReport();
 	CallOn = true;
 	FONAserial.print("ATD");
 	Serial.print("ATD");
@@ -459,8 +463,9 @@ void MakeCall(){
 	digitalWrite(StatusLED, HIGH);
 	delay(500);
 	digitalWrite(StatusLED, LOW);
-	newrotaryinput = false;
 	NewData = false;
+	CallOn = true;
+	ClearBufferSilent();
 }
 
 void ToneReport(){

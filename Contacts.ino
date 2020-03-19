@@ -82,7 +82,9 @@ void DisplayContacts(){
 			display.setCursor(15, 45);
 			display.print("CONTACTS J-L:");
 			display.setCursor(0, 70);
-			display.print("1: Leto");		
+			display.print("1: Jessica");
+			display.setCursor(0, 80);
+			display.print("2: Leto");		
 		} while (display.nextPage());
 	}
 
@@ -120,6 +122,8 @@ void DisplayContacts(){
 			display.setFont();	//Back to default font
 			display.setCursor(15, 45);
 			display.print("CONTACTS T-V:");
+			display.setCursor(0, 70);
+			display.print("4: My Voicemail");	
 		} while (display.nextPage());
 	}
 
@@ -130,12 +134,12 @@ void DisplayContacts(){
 			display.fillScreen(GxEPD_WHITE); // set the background to white (fill the buffer with value for white)
 			display.setFont();	//Back to default font
 			display.setCursor(15, 45);
-			display.print("CONTACTS T-V:");
+			display.print("CONTACTS W-Y:");
 		} while (display.nextPage());
 	}
 }
 
-void RetrieveContacts(){
+void RetrieveContact(){
 	if (pagenum == 2){
 		if (PNumber[0] == 1){	
 			PNumber[0] = 1;
@@ -354,6 +358,18 @@ void RetrieveContacts(){
 			PNumber[9] = 7;
 		}
 		if (PNumber[0] == 3){	
+			PNumber[0] = 1;
+			PNumber[1] = 2;
+			PNumber[2] = 3;
+			PNumber[3] = 1;
+			PNumber[4] = 2;
+			PNumber[5] = 3;
+			PNumber[6] = 4;
+			PNumber[7] = 5;
+			PNumber[8] = 6;
+			PNumber[9] = 7;
+		}
+		if (PNumber[0] == 4){	
 			PNumber[0] = 1;
 			PNumber[1] = 2;
 			PNumber[2] = 3;
