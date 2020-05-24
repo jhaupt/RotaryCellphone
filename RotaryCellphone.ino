@@ -141,13 +141,15 @@ void setup(){
 
 	digitalWrite(eink_ENA, HIGH);		//Pull the enable pin up on the e-ink display
 
-	Serial.begin(9600);
-	FONAserial.begin(4800);
+	Serial.begin(115200);           //Hardware UART + FTDI easily handles this (despite 3.5% timing error with 8MHz clock)
+	FONAserial.begin(9600);         //this can be increased this too, max tbc with logic analyser...
 
 	//Turn on the FONA
 	digitalWrite(FONAWake, LOW);    //Holding LOW for ~5s wakes FONA	
 	delay(6000);
-	FONAserial.println("AT+IPR=4800");		//Set baude rate on phone
+  FONAserial.println("AT");  //Helps baud rate auto selection: https://en.wikipedia.org/wiki/Hayes_command_set#Autobaud
+  delay(50);
+	FONAserial.println("AT+IPR=9600");		//Set baud rate on phone
 	delay(50);
 	FONAserial.println("AT");	//Sets voice "hang up" control so that "ATH" disconnects voice calls.
 	delay(50);
