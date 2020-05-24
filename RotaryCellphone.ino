@@ -38,12 +38,10 @@ Compiler LTO: LTO enabled
 Pinout: Arduino MEGA pinout
 Bootloader: Yes (UART0)
 
-Requires hardware mod to FONA Tx, see forum "Firmware stuff" thread for details.
+Requires hardware mod to FONA Tx connection, see forum "Firmware stuff" thread for details.
 ****************************************************/
 
-#include <avr/io.h>
 #include <SoftwareSerial.h>
-#include "Adafruit_EPD.h"
 #include <GxEPD2_BW.h>
 #include <Fonts/FreeMonoBold9pt7b.h>
 #include <Fonts/FreeMono9pt7b.h>
