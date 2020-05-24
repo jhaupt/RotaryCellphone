@@ -18,6 +18,6 @@ Pinout: Arduino MEGA pinout
 Bootloader: Yes (UART0)
 
 ## Issues & Troubleshooting
-Changed name of main.ino to the Git folder name. This removes requirement to put everything in a 'main' subfolder and makes development easier with GitHub [SteveC].
+Changed name of *main.ino* to *RotaryCellphone.ino*. This removes requirement to put everything in a *main* subfolder and makes development easier. All sketch files should now be directly under the folder: *RotaryCellphone* .
 
-Hardware mod required: change the connection of the FONA Tx pin from ATmega pin 19 to pin 25 (aka Arduino digital 12). This is to remove contention between FONA Tx and the SPI SS pin. See the forum "Firmware stuff" thread for details and photo [SteveC].
+Hardware mod required: change the FONA Tx pin connection from ATmega pin 19 to pin 25 (aka Arduino digital 12). This fixes the contention issue between FONA Tx and the SPI SS pin. See the forum thread "Firmware stuff" for details and photo [SteveC].
