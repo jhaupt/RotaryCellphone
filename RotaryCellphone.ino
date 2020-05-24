@@ -37,6 +37,8 @@ BOD: BOD 2.7v
 Compiler LTO: LTO enabled
 Pinout: Arduino MEGA pinout
 Bootloader: Yes (UART0)
+
+Requires hardware mod to FONA Tx, see forum "Firmware stuff" thread for details.
 ****************************************************/
 
 #include <avr/io.h>
@@ -106,7 +108,7 @@ const byte ModeSwitch_NP = 19;		//SP3T switch posiioned to "No Prepend" mode, in
 const byte ModeSwitch_alt = 18;    //SP3T switch positioned to switch to taking the alternate function of each button.
 const byte RotaryPulseIn = 39;          //The pin that reads the state of the rotary dial.
 
-SoftwareSerial FONAserial(53, 9); //Rx, Tx
+SoftwareSerial FONAserial(12, 9); //Rx, Tx. Requires hardware mod, see forum "Firmware stuff" thread.
 
 void setup(){
 // Set output pin functions
@@ -370,4 +372,3 @@ void loop(){
 		}
 	}
 }
-
