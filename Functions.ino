@@ -87,28 +87,24 @@ void StarPoundRotaryIn(){   //Listen for pulses from the rotary dial. NO LOOP he
 }
 
 
-
-void FONAserialReceive(){    //Listens over RS232, puts any string that's received into "ReceivedChars", and looks for some EndMarker character to change the NewData flag to True.
-	static byte n = 0;
-	char EndMarker = 'O';   //This is the "K" from "OK", which the SIM5230 always returns after accepting a command.
-	char rc;
-	int cnt;
- 	while (FONAserial.available() && NewData == false){		//For some reason the conditional MUST be "FONAserial.available()" and not "FONAserial.available() > 0".
-		rc = FONAserial.read();
-		if (rc != EndMarker){
-			ReceivedChars[n] = rc;
-			n++;
-			if (n >= nChars){
-				n = nChars - 1;
-			}
-		}
-		else{
-			ReceivedChars[n] = '\0'; // terminate the string
-			n = 0;
-			NewData = true;
-		}
-	}
+// READ FONA serial:
+// Return all serial data available from the FONA as a String object. The argument is the time to wait (ms) for 
+// the first character, can be zero or 13ms upwards (the battery would go flat before max delay). A small wait is 
+// useful where there might be a delay in FONA response. Note the SoftwareSerial buffer length is 63 characters.
+String FONAread(long int timeout) {
+  long int timeOld = millis();
+  while (!(FONAserial.available()) && !(millis() > timeOld + timeout)) {
+    delay(13);
+  }
+  String str;
+  while(FONAserial.available()) {
+    if (FONAserial.available() > 0) {
+      str += (char) FONAserial.read();
+    }
+  }
+  return str;
 }
+
 
 void ClearBuffer(){  //Clear the currently entered phone number
 	PNumber[0] = 99;  //Reset the phone number
@@ -154,6 +150,7 @@ void ClearBufferSilent(){  //Clear the currently entered phone number
 }
 
 void BarGraphSlow(int level){
+  Serial.print(F("Bargraph: "));
 	Serial.println(level);
 	if (level >= 1){
 		digitalWrite(BGLED1, HIGH);
@@ -360,42 +357,52 @@ void BarGraphWipeDown(){
 		digitalWrite(BGLED10, LOW);
 }
 
-void BatteryLevel(){
-	while (digitalRead(BatteryButton) == LOW){   //Loop for as long as the battery level button is depressed.
-		FONAserial.println("AT+CBC");
-		FONAserialReceive();
-		delay(10);
-		if (NewData == true){
-			digitalWrite(StatusLED, HIGH);
-			lhlf = (int)ReceivedChars[20] - 48;
-			BarGraphSlow(lhlf);
-			Serial.print(ReceivedChars);
-			Serial.print(ReceivedChars[20]);
-			Serial.println(ReceivedChars[21]);
-			NewData = false;
-			digitalWrite(StatusLED, LOW);
-		}
-	}
+void BatteryLevel() {
+  while (digitalRead(BatteryButton) == LOW) {  // Loop for as long as the battery level button is depressed.
+    byte tries = 0;
+    bool validMsg = false;
+    while (tries < 2 && validMsg == false) {   // 2 tries to get valid battery charge message
+      FONAserial.println("AT+CBC");            // The answer is in the form eg: +CBC: 0,100,4.232V
+      buffer = FONAread(50);                   // Get response from FONA (wait up to 50ms for the first character).
+      if ((buffer.indexOf("+CBC: ")) > -1) {   // Was a valid response returned?
+        validMsg = true;
+        tries++;
+      }
+    }
+    if (validMsg == true) {                    // If valid response was returned in within 2 tries, process it...
+      digitalWrite(StatusLED, HIGH);
+      buffer = buffer.substring((buffer.indexOf("+CBC:"))+6, (buffer.indexOf("V\r"))+1);  // Extract all battery charge data fields
+      Serial.print("Battery: ");               // Optional: print battery charge data to USB serial for debugging
+      Serial.println(buffer);                  // buffer should now contain battery charge in the form (eg): 0,82,4.050V (eg 82% battery)
+      byte index = buffer.indexOf(",");        // find index of first comma, then extract everything between the two commas...
+      buffer = buffer.substring(index+1, (buffer.indexOf(",", index+1)));  // buffer now contains string representing % battery charge.
+      //Serial.print("Battery: ");             // Optional print % battery charge to USB serial for debugging
+      //Serial.print(buffer);
+      //Serial.println("%");
+      BattLevel = buffer.toFloat();            // Convert data type from string to integer
+      BarGraphSlow(int(round(BattLevel/10)));  // Scale 0 - 10 and display on LED bargraph
+      digitalWrite(StatusLED, LOW);
+    } else {
+      Serial.println(F("Battery message invalid"));
+      delay(200);                              // Don't loop too soon if the buttton is held down
+    }
+  }
 }
 
 void SignalStrength(){
-	while (digitalRead(SignalButton) == LOW){   //Loop for as long as the signal strength button is depressed.
-		FONAserial.println("AT+CSQ");		//FONA returns signal strength from 0-31
-		Serial.println("AT+CSQ");
-		FONAserialReceive();
-		delay(100);
-		if (NewData == true){
-			digitalWrite(StatusLED, HIGH);  
-			lhlf = (int)ReceivedChars[18] - 48;
-			//rhlf = (int)ReceivedChars[19] - 48;
-			//fholder1 = (10*lhlf)+rhlf;
-			SigLevel = lhlf;		//10*(fholder1/31);		//Signal strength is 0-31: 0 is < -113dBm and 31 is > -51dBm
-			Serial.println(ReceivedChars);
-			Serial.println(SigLevel);
-			BarGraphSlow(SigLevel);
-			//Serial.println(ReceivedChars[18]);
-			//Serial.println(ReceivedChars[19]);
-			NewData = false;
+	while (digitalRead(SignalButton) == LOW){    // Loop for as long as the signal strength button is depressed.
+		FONAserial.println("AT+CSQ");	          	 // FONA returns signal quality; RSSI (dBm), BER (%)
+		buffer = FONAread(50);
+		if ((buffer.indexOf("+CSQ:")) > -1) {      // If valid response, extract the 'signal quality' message...
+      digitalWrite(StatusLED, HIGH);           // Find of start of signal response, extract chars between start & comma...
+			buffer = buffer.substring((buffer.indexOf("+CSQ:"))+6, (buffer.indexOf(",")));
+			SigLevel = buffer.toFloat();		         // convert data type from string to float
+      Serial.print(F("SigLevel code: "));
+      Serial.println(buffer);
+      int SigBars = int(round((SigLevel * 10 / 31)));  // scale 0 - 31 as 0 - 10
+      if (SigBars > 31)                                // 0-31 is valid range, 99 = not known or not detectable 
+        SigBars = 0;
+			BarGraphSlow(SigBars);
 			digitalWrite(StatusLED, LOW);
 		}
 	}
@@ -422,11 +429,10 @@ void MakeCall631(){
 	FONAserial.println(";");
 	Serial.print(";");
 	delay(10);
-	FONAserialReceive();
+	Serial.println(FONAread(13));
 	digitalWrite(StatusLED, HIGH);
 	delay(500);
 	digitalWrite(StatusLED, LOW);
-	NewData = false;
 	CallOn = true;
 	ClearBufferSilent();
 }
@@ -459,11 +465,10 @@ void MakeCall(){
 	FONAserial.println(";");
 	Serial.println(";");
 	delay(100);
-	FONAserialReceive();
+	Serial.println(FONAread(13));
 	digitalWrite(StatusLED, HIGH);
 	delay(500);
 	digitalWrite(StatusLED, LOW);
-	NewData = false;
 	CallOn = true;
 	ClearBufferSilent();
 }

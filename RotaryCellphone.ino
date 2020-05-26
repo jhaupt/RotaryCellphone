@@ -1,10 +1,34 @@
 /***************************************************
+* MIT License
+*
+* Copyright (c) 2020 Justine Haupt
+*
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+*
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
+****************************************************
 Rotary cellphone original firmware written by Justine Haupt. 
 MIT license, all text above must be included in any redistribution.
 
 1/12/2020: v1.0
 1/13/2020: v1.1
 1/18/2020: v1.1.1
+
+2020/05/26: FONA receive fixes (require hardware mod) - SteveC
 
   Cellphone program for ATMega2560-based board controlling the Adafruit FONA v1. Adafruit libraries are not used for the FONA
   but this does use the Adafruit 2.13" Tri-Color E-Ink display with the associated libraries. The license from Lady Ada for
@@ -53,58 +77,57 @@ Requires hardware mod to FONA Tx connection, see forum "Firmware stuff" thread f
 //For Adafruit e-ink display:
 #define ENABLE_GxEPD2_GFX 0 
 #define MAX_HEIGHT(EPD) (EPD::HEIGHT <= 800 / (EPD::WIDTH / 8) ? EPD::HEIGHT : 800 / (EPD::WIDTH / 8))
-GxEPD2_BW<GxEPD2_213_flex, MAX_HEIGHT(GxEPD2_213_flex)> display(GxEPD2_213_flex(25, 26, 28, 29)); //Pin order is ECS, D/C, RESET, BUSY. For Adafruit 2.13" Flexible Monochrome EPD (AKA GDEW0213I5F)
+GxEPD2_BW<GxEPD2_213_flex, MAX_HEIGHT(GxEPD2_213_flex)> display(GxEPD2_213_flex(25, 26, 28, 29)); // Pin order is ECS, D/C, RESET, BUSY. For Adafruit 2.13"
+                                                                                                  // Flexible Monochrome EPD (AKA GDEW0213I5F)
 
 //Define variables:
-const byte nChars = 32;
+const byte nChars = 80;  // max number of character to buffer (may need more for texts). Note SoftwareSerial buffer limit of 63 chars
 byte n = 1;   //For counting up numbers from the rotary dial for entering a digit in the phone number
 byte k = 0;   //For specifying the digit in a phone number
 unsigned long TimeSinceLastPulse = 0;   //used to see if enough of a delay has happened since the last pulse from the rotary dial to consider the sequence complete.
-char ReceivedChars[32]; // an array to store strings received over RS232 from FONA
+String buffer;          // String object buffer for incoming messages from FONA
 byte PNumber[30]; // an array to store phone numbers as they're dialed with the rotary dial
-bool NewData = false;  // a flag to indicate whether a string has been received over RS232
 bool StillOn = false;  // a flag to indicate that th
 bool StartTimeSinceLastPulse = false;  //This gets sets to "true" the first time the rotary dial is used.
 bool CallOn = false;   //Set to "true" when a call is in progress, to determine the function of the "call_startedn" pin.
 bool newrotaryinput = false;
 float fholder1;
 int iholder;
-int clvl;	//call level storage integer
-int rlvl; 	//ring level storage integer
+int clvl;	  // call level storage integer
+int rlvl; 	// ring level storage integer
 float BattLevel;
 float SigLevel;
-int lhlf;
-int rhlf;
 int pagenum;		//holder for page number
 int mode;	//1 = 631, 2 = NP, 3 = Alt. Marks the mode the phone's currently in. Needed for certain things. 
 
 //Define general output pins
 const byte StatusLED = 13;
 const byte HookLED = 49;
-const byte BGLED1 = 7;		//bargraph LED 0 (D15)
-const byte BGLED2 = 6;		//bargraph LED 1 (D14)
-const byte BGLED3 = 16;		//bargraph LED 2 (D13)
-const byte BGLED4 = 17;		//bargraph LED 3 (D12)
-const byte BGLED5 = 14;		//bargraph LED 4 (D11)
-const byte BGLED6 = 15;		//bargraph LED 5 (D10)
-const byte BGLED7 = 42;		//bargraph LED 6 (D9)
-const byte BGLED8 = 43;		//bargraph LED 7 (D8)
-const byte BGLED9 = 47;		//bargraph LED 8 (D7)
-const byte BGLED10 = 48;		//bargraph LED 9 (D6)
+const byte BGLED1 = 7;    //bargraph LED 0 (D15)
+const byte BGLED2 = 6;    //bargraph LED 1 (D14)
+const byte BGLED3 = 16;   //bargraph LED 2 (D13)
+const byte BGLED4 = 17;   //bargraph LED 3 (D12)
+const byte BGLED5 = 14;   //bargraph LED 4 (D11)
+const byte BGLED6 = 15;   //bargraph LED 5 (D10)
+const byte BGLED7 = 42;   //bargraph LED 6 (D9)
+const byte BGLED8 = 43;   //bargraph LED 7 (D8)
+const byte BGLED9 = 47;   //bargraph LED 8 (D7)
+const byte BGLED10 = 48;  //bargraph LED 9 (D6)
 const byte FONAWake = A0;
 const byte eink_ENA = 31;
 
 //Define input pin
-const byte HookButton = 33;   //Make call, hangup call, or answer incoming call (momentary switch shorts to gnd)
-const byte ClearButton = 36;     //Clear number currently in dialout buffer from rotary dial (momentary switch gnd)
+const byte HookButton = 33;       //Make call, hangup call, or answer incoming call (momentary switch shorts to gnd)
+const byte ClearButton = 36;      //Clear number currently in dialout buffer from rotary dial (momentary switch gnd)
 const byte SignalButton = 34;     //Hold to check signal strengh
 const byte BatteryButton = 37;    //Hold to check battery level
-const byte SaButton = 35;    //Hold to check battery level
-const byte FnButton = 32;    //Hold to check battery level
-const byte ModeSwitch_631 = 20;    //SP3T switch positioned to append a certain area code to all calls
-const byte ModeSwitch_NP = 19;		//SP3T switch posiioned to "No Prepend" mode, in which a full 10-digit phone number is needed.
-const byte ModeSwitch_alt = 18;    //SP3T switch positioned to switch to taking the alternate function of each button.
-const byte RotaryPulseIn = 39;          //The pin that reads the state of the rotary dial.
+const byte SaButton = 35;         //Hold to check battery level
+const byte FnButton = 32;         //Hold to check battery level
+const byte ModeSwitch_631 = 20;   //SP3T switch positioned to append a certain area code to all calls. NOTE: swap pin with ModeSwitch_alt for 1st rev boards
+const byte ModeSwitch_NP = 19;	  //SP3T switch posiioned to "No Prepend" mode, in which a full 10-digit phone number is needed.
+const byte ModeSwitch_alt = 18;   //SP3T switch positioned to switch to taking the alternate function of each button.
+const byte RotaryPulseIn = 39;    //The pin that reads the state of the rotary dial.
+const byte PowerState = A2;       //Reads the power state of the FONA module, 1=ON
 
 SoftwareSerial FONAserial(12, 9); //Rx, Tx. Requires hardware mod, see forum "Firmware stuff" thread.
 
@@ -138,30 +161,47 @@ void setup(){
 	pinMode(ModeSwitch_alt, INPUT_PULLUP);
 
 	digitalWrite(eink_ENA, HIGH);		//Pull the enable pin up on the e-ink display
+  digitalWrite(FONAWake, HIGH);   //Default state for the FONA Power Key input
 
+  buffer.reserve(nChars+1);       //Reserve space for FONA messages, may need increasing for texts but caution with SoftwareSerial buffer limit
 	Serial.begin(115200);           //Hardware UART + FTDI easily handles this (despite 3.5% timing error with 8MHz clock)
 	FONAserial.begin(9600);         //this can be increased this too, max tbc with logic analyser...
 
-	//Turn on the FONA
-	digitalWrite(FONAWake, LOW);    //Holding LOW for ~5s wakes FONA	
-	delay(6000);
-  FONAserial.println("AT");  //Helps baud rate auto selection: https://en.wikipedia.org/wiki/Hayes_command_set#Autobaud
-  delay(50);
-	FONAserial.println("AT+IPR=9600");		//Set baud rate on phone
-	delay(50);
-	FONAserial.println("AT");	//Sets voice "hang up" control so that "ATH" disconnects voice calls.
-	delay(50);
-	FONAserial.println("AT+CVHU=0");	//Sets voice "hang up" control so that "ATH" disconnects voice calls.
-	delay(50);
-	FONAserial.println("AT+CSDVC=3");	//Set audio output channel. 3 is the speaker.
-	delay(50);
-	FONAserial.println("AT+VMUTE=0");	//Set speaker mute to OFF
-	delay(50);
+	// Check if FONA is ON, turn on if necessary.
+  // The FONAwake pin toggles power so let's check if it's already on.
+  if (digitalRead(PowerState) == LOW) {
+    Serial.println("FONA is OFF");
+    digitalWrite(FONAWake, LOW);    //Holding LOW for MIN 64ms wakes FONA  
+    delay(128);
+    digitalWrite(FONAWake, HIGH);
+    while (PowerState == LOW) {}    //wait for FONA to power up, approx 5s
+    Serial.println("FONA is ON");
+  } else {
+    Serial.println("FONA already ON");
+  }	
+	delay(6000);  // Can take up to 5-6s to start, reduce this if we do some other delaying stuff here, like a welcome display.
+
+  // Initialise the FONA
+  FONAserial.println("AT");           // Helps baud rate auto selection: https://en.wikipedia.org/wiki/Hayes_command_set#Autobaud
+  Serial.println(FONAread(50));       // wait up to 50ms for start of reply then send reply over USB serial
+  delay(13);
+	FONAserial.println("AT+IPR=9600");	// Set baud rate on phone
+	Serial.println(FONAread(50));
+  delay(13);
+	FONAserial.println("AT+CVHU=0");	  // Sets voice "hang up" control so that "ATH" disconnects voice calls.
+	Serial.println(FONAread(50));
+  delay(13);
+	FONAserial.println("AT+CSDVC=3");  	// Set audio output channel. 3 is the speaker.
+	Serial.println(FONAread(50));
+  delay(13);
 	FONAserial.println("AT+CRXGAIN=10000");	// Set Rx Gain, which affects the speaker volume during calls. This is a good value for use of the speaker as a handset.
-	delay(50);
-	FONAserial.println("AT+CLVL=3");	//Set volume (0-8)
-	delay(50);
-	FONAserial.println("AT+CRSL=8");	//Ringer volume (0-8)
+	Serial.println(FONAread(50));
+  delay(13);
+	FONAserial.println("AT+CLVL=3");  	// Set volume (0-8)
+	Serial.println(FONAread(50));
+  delay(13);
+	FONAserial.println("AT+CRSL=8");   	// Ringer volume (0-8)
+  Serial.println(FONAread(50));
 
 	n = 0;    //Starting phone number digit value is 0
 	k = 0;    //Starting phone number digit position is 1
@@ -174,7 +214,9 @@ void setup(){
 	delay(500);
 	digitalWrite(StatusLED, LOW);
 	ClearBuffer();
+  Serial.println(F("SETUP COMPLETE"));
 }
+
 
 void loop(){
 	
