@@ -29,7 +29,7 @@ The best solution is to use another pin for FONA Tx. **This fork requires that F
 
 ![Re-wire FONA Tx](images/hwmod_part2.jpg "Re-wiring FONA Tx with 0.2mm 'Vero' wire")
 
-Re-wire FONA Tx to ATmega pin 25 with 0.2mm 'Vero' wire.
+FONA Tx rewired to ATmega pin 25 with 0.2mm 'Vero' wire.
 
 ### Filename change
 Changed name of *main.ino* to *RotaryCellphone.ino*. This removes requirement to put everything in a *main* subfolder and makes development a little easier from a Git local repository. All sketch files should be directly under the folder: *RotaryCellphone*.
@@ -39,10 +39,12 @@ This fork will require the FONA Tx hardware re-wire mod. The aim is to follow th
 
 It might be possible to use a third party phone module library, some have been considered. TinyGSM is compatible with the SIM5320 but currently not for voice - keep an eye on TinyGSM developments. The Adafruit FONA library requires the RI (ring indicator) wired to a pin using a specific interupt (another hardware mod would be required).
 
-This fork will not attempt localisation (nor localization)! There's a big world outside North America's 10 digit numbering plan and the International Telecommunication Union (ITU) allows up to 15 digits. As Justine states: "This is a DIY project", any necessary localisation or customisation is left to the DIYer. [Telephone numbering plans](https://en.wikipedia.org/wiki/Telephone_numbering_plan "Telephone numbering plans").
+This fork will not attempt localisation (nor localization)! There's a big world outside North America's 10 digit numbering plan and the International Telecommunication Union (ITU) allows up to 15 digits. As Justine states: "This is a DIY project", any necessary localisation or customisation is left to the DIYer. [Telephone numbering plan](https://en.wikipedia.org/wiki/Telephone_numbering_plan "Telephone numbering plan"): many countries have variable length area codes.
 
-- Reliably decode FONA messages by parsing AT command responses - done
+- Reliably decode FONA messages by parsing AT command responses - *done*
 
-- Fix Signal strength and battery charge display - done
+- Fix Signal strength and battery charge display - *done*
+
+- Display time from cell network - *in progress*
 
 - Parse and display incoming call ID... *in progress*...
