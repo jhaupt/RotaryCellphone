@@ -288,73 +288,182 @@ void BarGraphMed(int level){
 }
 
 void BarGraphWipeUp(){
-		int holdtime = 20;
-	 	digitalWrite(StatusLED, HIGH);    
-		digitalWrite(BGLED10, HIGH);
-		delay(holdtime);
-		digitalWrite(BGLED10, LOW);
-		digitalWrite(BGLED9, HIGH);
-		delay(holdtime);
-		digitalWrite(BGLED9, LOW);
-		digitalWrite(BGLED8, HIGH);
-		delay(holdtime);
-		digitalWrite(BGLED8, LOW);
-		digitalWrite(StatusLED, LOW);   
-		digitalWrite(BGLED7, HIGH);
-		delay(holdtime);
-		digitalWrite(BGLED7, LOW);
-		digitalWrite(BGLED6, HIGH);
-		delay(holdtime);
-		digitalWrite(BGLED6, LOW);
-		digitalWrite(BGLED5, HIGH);
-		delay(holdtime);
-		digitalWrite(BGLED5, LOW);
-		digitalWrite(BGLED4, HIGH);
-		delay(holdtime);
-		digitalWrite(BGLED4, LOW);
-		digitalWrite(BGLED3, HIGH);
-		delay(holdtime);
-		digitalWrite(BGLED3, LOW);
-		digitalWrite(BGLED2, HIGH);
-		delay(holdtime);
-		digitalWrite(BGLED2, LOW);
-		digitalWrite(BGLED1, HIGH);
-		delay(holdtime);
-		digitalWrite(BGLED1, LOW);
+  int holdtime = 20;
+  digitalWrite(StatusLED, HIGH);    
+  digitalWrite(BGLED10, HIGH);
+  delay(holdtime);
+  digitalWrite(BGLED10, LOW);
+  digitalWrite(BGLED9, HIGH);
+  delay(holdtime);
+  digitalWrite(BGLED9, LOW);
+  digitalWrite(BGLED8, HIGH);
+  delay(holdtime);
+  digitalWrite(BGLED8, LOW);
+  digitalWrite(StatusLED, LOW);   
+  digitalWrite(BGLED7, HIGH);
+  delay(holdtime);
+  digitalWrite(BGLED7, LOW);
+  digitalWrite(BGLED6, HIGH);
+  delay(holdtime);
+  digitalWrite(BGLED6, LOW);
+  digitalWrite(BGLED5, HIGH);
+  delay(holdtime);
+  digitalWrite(BGLED5, LOW);
+  digitalWrite(BGLED4, HIGH);
+  delay(holdtime);
+  digitalWrite(BGLED4, LOW);
+  digitalWrite(BGLED3, HIGH);
+  delay(holdtime);
+  digitalWrite(BGLED3, LOW);
+  digitalWrite(BGLED2, HIGH);
+  delay(holdtime);
+  digitalWrite(BGLED2, LOW);
+  digitalWrite(BGLED1, HIGH);
+  delay(holdtime);
+  digitalWrite(BGLED1, LOW);
 }
 
 void BarGraphWipeDown(){
-		int holdtime = 20;
-		digitalWrite(BGLED1, HIGH);
-		delay(holdtime);
-		digitalWrite(BGLED1, LOW);
-		digitalWrite(BGLED2, HIGH);
-		delay(holdtime);
-		digitalWrite(BGLED2, LOW);
-		digitalWrite(BGLED3, HIGH);
-		delay(holdtime);
-		digitalWrite(BGLED3, LOW);
-		digitalWrite(BGLED4, HIGH);
-		delay(holdtime);
-		digitalWrite(BGLED4, LOW);
-		digitalWrite(BGLED5, HIGH);
-		delay(holdtime);
-		digitalWrite(BGLED5, LOW);
-		digitalWrite(BGLED6, HIGH);
-		delay(holdtime);
-		digitalWrite(BGLED6, LOW);
-		digitalWrite(BGLED7, HIGH);
-		delay(holdtime);
-		digitalWrite(BGLED7, LOW);
-		digitalWrite(BGLED8, HIGH);
-		delay(holdtime);
-		digitalWrite(BGLED8, LOW);
-		digitalWrite(BGLED9, HIGH);
-		delay(holdtime);
-		digitalWrite(BGLED9, LOW);
-		digitalWrite(BGLED10, HIGH);
-		delay(holdtime);
-		digitalWrite(BGLED10, LOW);
+  int holdtime = 20;
+  digitalWrite(BGLED1, HIGH);
+  delay(holdtime);
+  digitalWrite(BGLED1, LOW);
+  digitalWrite(BGLED2, HIGH);
+  delay(holdtime);
+  digitalWrite(BGLED2, LOW);
+  digitalWrite(BGLED3, HIGH);
+  delay(holdtime);
+  digitalWrite(BGLED3, LOW);
+  digitalWrite(BGLED4, HIGH);
+  delay(holdtime);
+  digitalWrite(BGLED4, LOW);
+  digitalWrite(BGLED5, HIGH);
+  delay(holdtime);
+  digitalWrite(BGLED5, LOW);
+  digitalWrite(BGLED6, HIGH);
+  delay(holdtime);
+  digitalWrite(BGLED6, LOW);
+  digitalWrite(BGLED7, HIGH);
+  delay(holdtime);
+  digitalWrite(BGLED7, LOW);
+  digitalWrite(BGLED8, HIGH);
+  delay(holdtime);
+  digitalWrite(BGLED8, LOW);
+  digitalWrite(BGLED9, HIGH);
+  delay(holdtime);
+  digitalWrite(BGLED9, LOW);
+  digitalWrite(BGLED10, HIGH);
+  delay(holdtime);
+  digitalWrite(BGLED10, LOW);
+}
+
+void displayTime() {           //  Use e-paper partial update to display date/time
+  getTime();
+  Serial.print("RTC: ");  // Send date/time over serial USB for debugging
+  Serial.printf("%d/%d/%d  %02d:%02d\n", rtcDay, rtcMonth, rtcYear+2000, rtcHour, rtcMin);
+  display.setPartialWindow(0, 185, 104, 26);    // Partial update of bottom 26 rows of pixels
+  display.firstPage();  //this function is called before every time ePaper is updated.
+  do {
+    display.fillScreen(GxEPD_WHITE);
+    display.setFont();             //Back to default font
+    display.setCursor(5, 185);
+    display.print(dowStr);
+    display.printf(" %d ", rtcDay);
+    display.print(monthStr);
+    display.setFont(&FreeMonoBold9pt7b);
+    display.setCursor(24, 208);
+    display.printf("%02d:%02d", rtcHour, rtcMin);
+  } while (display.nextPage());
+  display.setFullWindow();        // back to full window
+  display.powerOff();
+}
+
+void getTime() {
+  FONAserial.println("AT+CCLK?");          //Get RTC values
+  buffer = FONAread(50);                  //Wait up to 50ms for first character
+  if ((buffer.indexOf("+CCLK:")) > -1) {
+    byte index = buffer.indexOf("+CCLK:");         // Typical RTC msg from FONA: +CCLK: "20/05/25,21:26:08+04"
+    buffer = buffer.substring(index+8, index+25);  // Buffer contains RTC in typ format: 20/05/25,21:26:08+04
+    //Serial.println(buffer);                    // send the buffer to USB serial if required for debugging
+    rtcYear = (buffer.substring(0, 2)).toInt();
+    rtcMonth = (buffer.substring(3, 5)).toInt();
+    rtcDay = (buffer.substring(6, 8)).toInt();
+    rtcHour = (buffer.substring(9, 11)).toInt();
+    rtcMin = (buffer.substring(12, 14)).toInt();
+    // Calculate day of week (dow) for a given date, Sun=0, Sat=6
+    // using Tomohiko Sakamoto's algorithm
+    int y = (rtcYear+2000) - (rtcMonth < 3);
+    dow = (y + y/4 - y/100 + y/400 + leadingDay[rtcMonth-1] + rtcDay) % 7;
+    switch (dow) {
+      case 0:
+        dowStr = "Sun";
+        break;
+      case 1:
+        dowStr = "Mon";
+        break;
+      case 2:
+        dowStr = "Tue";
+        break;
+     case 3:
+        dowStr = "Wed";
+        break;
+      case 4:
+        dowStr = "Thu";
+        break;
+      case 5:
+        dowStr = "Fri";
+        break;
+      case 6:
+        dowStr = "Sat";
+        break;
+      default:
+        break;
+      }
+    switch (rtcMonth) {         // Because an old fashioned phone should use words rather than numbers!
+      case 1:                   // also some countries use weird day, month number order!
+        monthStr = "January";
+        break;
+      case 2:
+        monthStr = "February";
+        break;
+      case 3:
+        monthStr = "March";
+        break;
+      case 4:
+        monthStr = "April";
+        break;
+     case 5:
+        monthStr = "May";
+        break;
+      case 6:
+        monthStr = "June";
+        break;
+      case 7:
+        monthStr = "July";
+        break;
+      case 8:
+        monthStr = "August";
+        break;
+      case 9:
+        monthStr = "September";
+        break;
+      case 10:
+        monthStr = "October";
+        break;
+      case 11:
+        monthStr = "November";
+        break;
+      case 12:
+        monthStr = "December";
+        break;
+      default:
+        break;
+      }
+  }
+  else {
+    dowStr = "Invalid";
+    monthStr = "time";
+  }
 }
 
 void BatteryLevel() {
@@ -474,34 +583,34 @@ void MakeCall(){
 }
 
 void ToneReport(){
-			FONAserial.print("AT+CPTONE=");	//Play DTMF tone over speaker
-			FONAserial.println(PNumber[0]);
-			BarGraphMed(PNumber[0]);
-			FONAserial.print("AT+CPTONE=");	//Play DTMF tone over speaker
-			FONAserial.println(PNumber[1]);
-			BarGraphMed(PNumber[1]);
-			FONAserial.print("AT+CPTONE=");	//Play DTMF tone over speaker
-			FONAserial.println(PNumber[2]);
-			BarGraphMed(PNumber[2]);
-			FONAserial.print("AT+CPTONE=");	//Play DTMF tone over speaker
-			FONAserial.println(PNumber[3]);
-			BarGraphMed(PNumber[3]);
-			FONAserial.print("AT+CPTONE=");	//Play DTMF tone over speaker
-			FONAserial.println(PNumber[4]);
-			BarGraphMed(PNumber[4]);
-			FONAserial.print("AT+CPTONE=");	//Play DTMF tone over speaker
-			FONAserial.println(PNumber[5]);
-			BarGraphMed(PNumber[5]);
-			FONAserial.print("AT+CPTONE=");	//Play DTMF tone over speaker
-			FONAserial.println(PNumber[6]);
-			BarGraphMed(PNumber[6]);
-			FONAserial.print("AT+CPTONE=");	//Play DTMF tone over speaker
-			FONAserial.println(PNumber[7]);
-			BarGraphMed(PNumber[7]);
-			FONAserial.print("AT+CPTONE=");	//Play DTMF tone over speaker
-			FONAserial.println(PNumber[8]);
-			BarGraphMed(PNumber[8]);
-			FONAserial.print("AT+CPTONE=");	//Play DTMF tone over speaker
-			FONAserial.println(PNumber[9]);
-			BarGraphMed(PNumber[9]);	
+  FONAserial.print("AT+CPTONE=");	//Play DTMF tone over speaker
+  FONAserial.println(PNumber[0]);
+  BarGraphMed(PNumber[0]);
+  FONAserial.print("AT+CPTONE=");	//Play DTMF tone over speaker
+  FONAserial.println(PNumber[1]);
+  BarGraphMed(PNumber[1]);
+  FONAserial.print("AT+CPTONE=");	//Play DTMF tone over speaker
+  FONAserial.println(PNumber[2]);
+  BarGraphMed(PNumber[2]);
+  FONAserial.print("AT+CPTONE=");	//Play DTMF tone over speaker
+  FONAserial.println(PNumber[3]);
+  BarGraphMed(PNumber[3]);
+  FONAserial.print("AT+CPTONE=");	//Play DTMF tone over speaker
+  FONAserial.println(PNumber[4]);
+  BarGraphMed(PNumber[4]);
+  FONAserial.print("AT+CPTONE=");	//Play DTMF tone over speaker
+  FONAserial.println(PNumber[5]);
+  BarGraphMed(PNumber[5]);
+  FONAserial.print("AT+CPTONE=");	//Play DTMF tone over speaker
+  FONAserial.println(PNumber[6]);
+  BarGraphMed(PNumber[6]);
+  FONAserial.print("AT+CPTONE=");	//Play DTMF tone over speaker
+  FONAserial.println(PNumber[7]);
+  BarGraphMed(PNumber[7]);
+  FONAserial.print("AT+CPTONE=");	//Play DTMF tone over speaker
+  FONAserial.println(PNumber[8]);
+  BarGraphMed(PNumber[8]);
+  FONAserial.print("AT+CPTONE=");	//Play DTMF tone over speaker
+  FONAserial.println(PNumber[9]);
+  BarGraphMed(PNumber[9]);	
 }

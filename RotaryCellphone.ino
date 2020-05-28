@@ -1,7 +1,7 @@
 /***************************************************
 * MIT License
 *
-* Copyright (c) 2020 Justine Haupt
+* Copyright (c) 2020 Justine Haupt et al
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -87,9 +87,9 @@ byte k = 0;   //For specifying the digit in a phone number
 unsigned long TimeSinceLastPulse = 0;   //used to see if enough of a delay has happened since the last pulse from the rotary dial to consider the sequence complete.
 String buffer;          // String object buffer for incoming messages from FONA
 byte PNumber[30]; // an array to store phone numbers as they're dialed with the rotary dial
-bool StillOn = false;  // a flag to indicate that th
+bool StillOn = false;   // a flag to indicate that th
 bool StartTimeSinceLastPulse = false;  //This gets sets to "true" the first time the rotary dial is used.
-bool CallOn = false;   //Set to "true" when a call is in progress, to determine the function of the "call_startedn" pin.
+bool CallOn = false;    //Set to "true" when a call is in progress, to determine the function of the "call_startedn" pin.
 bool newrotaryinput = false;
 float fholder1;
 int iholder;
@@ -98,7 +98,18 @@ int rlvl; 	// ring level storage integer
 float BattLevel;
 float SigLevel;
 int pagenum;		//holder for page number
-int mode;	//1 = 631, 2 = NP, 3 = Alt. Marks the mode the phone's currently in. Needed for certain things. 
+int mode;	//1 = 631, 2 = NP, 3 = Alt. Marks the mode the phone's currently in. Needed for certain things.
+unsigned long longTimer = 0;     // loop counter to do something periodically with a long interval.
+
+byte rtcYear;
+byte rtcMonth;
+byte rtcDay;
+byte rtcHour;
+byte rtcMin;
+byte dow;                     // Day of the week; 0 = Sunday, 6 = Saturday
+String dowStr = "Invalid";
+String monthStr = "time";
+const int leadingDay[] = {0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4};  // Array used for day of the week algorithm
 
 //Define general output pins
 const byte StatusLED = 13;
@@ -179,7 +190,7 @@ void setup(){
   } else {
     Serial.println("FONA already ON");
   }	
-	delay(6000);  // Can take up to 5-6s to start, reduce this if we do some other delaying stuff here, like a welcome display.
+	delay(6000);    // Can take up to 5-6s to start, reduce this if we do some other delaying stuff here, like a welcome display.
 
   // Initialise the FONA
   FONAserial.println("AT");           // Helps baud rate auto selection: https://en.wikipedia.org/wiki/Hayes_command_set#Autobaud
@@ -202,6 +213,9 @@ void setup(){
   delay(13);
 	FONAserial.println("AT+CRSL=8");   	// Ringer volume (0-8)
   Serial.println(FONAread(50));
+  delay(13);
+  FONAserial.println("AT+CTZU=1");    // Enable automatic time & time zone update from cell network. This is stored in non-volatile...
+  Serial.println(FONAread(50));       // memory, so after it's sent to the FONA once, these 2 lines can be commented out.
 
 	n = 0;    //Starting phone number digit value is 0
 	k = 0;    //Starting phone number digit position is 1
@@ -218,7 +232,17 @@ void setup(){
 }
 
 
-void loop(){
+void loop() {
+  if (longTimer >= 100000) {               // Do something here periodically (max 4,294,967,295),
+    longTimer = 0;                         // approx 100us per count (with no switch press delays)
+    Serial.println(F("Long timer tick"));  // Here we update display with cell network time every 10s
+    if (!(StartTimeSinceLastPulse == true || StillOn == true)) {  // Only update if dial not in use.
+      displayTime();
+    }
+    //Serial.print("FONA: ");
+    //Serial.println(FONAread(0));
+  }
+  longTimer++;
 	
 	if (CallOn == true){
 		digitalWrite(HookLED, HIGH);
@@ -226,6 +250,11 @@ void loop(){
 	else if (CallOn == false){
 		digitalWrite(HookLED, LOW);
 	}
+
+  if (TimeSinceLastPulse > 30000) {   // Interdigit pause? Approx 3s since last dialled number.
+    StartTimeSinceLastPulse = false;  // reset here otherwise StartTimeSinceLastPulse never goes high after first...
+    TimeSinceLastPulse = 0;           // dial and TimeSinceLastPulse counts forever - so reset here.
+  }
 
 	if (digitalRead(ModeSwitch_631) == LOW){
 		mode = 1;
