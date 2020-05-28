@@ -45,6 +45,8 @@ This fork will not attempt localisation (nor localization)! There's a big world 
 
 - Fix Signal strength and battery charge display - *done*
 
-- Display time from cell network - *in progress*
+- Display time from cell network - *done*
 
 - Parse and display incoming call ID... *in progress*...
+
+- Get NP mode to dial variable length (8-15) numbers (de-localisation!)...
