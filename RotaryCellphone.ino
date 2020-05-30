@@ -73,6 +73,7 @@ Requires hardware mod to FONA Tx connection, see forum "Firmware stuff" thread f
 #include <Fonts/FreeSerifItalic9pt7b.h>
 #include <Fonts/FreeSerif9pt7b.h>
 #include <Fonts/FreeSansOblique9pt7b.h>
+#include "bitmaps.h"
 
 //For Adafruit e-ink display:
 #define ENABLE_GxEPD2_GFX 0 
@@ -86,6 +87,7 @@ byte n = 1;   //For counting up numbers from the rotary dial for entering a digi
 byte k = 0;   //For specifying the digit in a phone number
 unsigned long TimeSinceLastPulse = 0;   //used to see if enough of a delay has happened since the last pulse from the rotary dial to consider the sequence complete.
 String buffer;          // String object buffer for incoming messages from FONA
+String callerID;    // String object to store incoming caller ID
 byte PNumber[30]; // an array to store phone numbers as they're dialed with the rotary dial
 bool StillOn = false;   // a flag to indicate that th
 bool StartTimeSinceLastPulse = false;  //This gets sets to "true" the first time the rotary dial is used.
@@ -99,14 +101,15 @@ float BattLevel;
 float SigLevel;
 int pagenum;		//holder for page number
 int mode;	//1 = 631, 2 = NP, 3 = Alt. Marks the mode the phone's currently in. Needed for certain things.
-unsigned long longTimer = 0;     // loop counter to do something periodically with a long interval.
+unsigned int longTimer = 0;     // loop counter to do something periodically with a long interval (every 10s).
+unsigned int shortTimer = 0;    // loop counter to do someting short (a few ms) but frequently (every second)
 
 byte rtcYear;
 byte rtcMonth;
 byte rtcDay;
 byte rtcHour;
 byte rtcMin;
-byte dow;                     // Day of the week; 0 = Sunday, 6 = Saturday
+byte dow;                       // Day of the week; 0 = Sunday, 6 = Saturday
 String dowStr = "Invalid";
 String monthStr = "time";
 const int leadingDay[] = {0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4};  // Array used for day of the week algorithm
@@ -174,9 +177,11 @@ void setup(){
 	digitalWrite(eink_ENA, HIGH);		//Pull the enable pin up on the e-ink display
   digitalWrite(FONAWake, HIGH);   //Default state for the FONA Power Key input
 
-  buffer.reserve(nChars+1);       //Reserve space for FONA messages, may need increasing for texts but caution with SoftwareSerial buffer limit
-	Serial.begin(115200);           //Hardware UART + FTDI easily handles this (despite 3.5% timing error with 8MHz clock)
-	FONAserial.begin(9600);         //this can be increased this too, max tbc with logic analyser...
+  buffer.reserve(nChars+1);       // Reserve space for FONA messages, may need increasing for texts but caution with SoftwareSerial buffer limit
+  callerID.reserve(16);           // Reserve space for caller ID string (ITU 15 digits max + null), or 'Withheld' etc
+  callerID = "???-????";          // Justine's original caller ID place holder :)
+	Serial.begin(115200);           // Hardware UART + FTDI easily handles this (despite 3.5% timing error with 8MHz clock)
+	FONAserial.begin(9600);         // this can be increased this too, max tbc with logic analyser...
 
 	// Check if FONA is ON, turn on if necessary.
   // The FONAwake pin toggles power so let's check if it's already on.
@@ -186,12 +191,29 @@ void setup(){
     delay(128);
     digitalWrite(FONAWake, HIGH);
     while (PowerState == LOW) {}    //wait for FONA to power up, approx 5s
-    Serial.println("FONA is ON");
+    Serial.println(F("FONA is ON"));
   } else {
-    Serial.println("FONA already ON");
-  }	
-	delay(6000);    // Can take up to 5-6s to start, reduce this if we do some other delaying stuff here, like a welcome display.
+    Serial.println(F("FONA already ON"));
+  }
 
+  display.init(115200);             // Initialise and display a welcome screen
+  display.setRotation(0);
+  display.setTextColor(GxEPD_BLACK);
+  display.firstPage();              //Display a welcome msg to while FONA is starting
+  do {
+    display.drawBitmap(0, 0, logo, 104, 76, GxEPD_BLACK);  // Optional: change 'logo' to 'kitten'
+    display.setFont(&FreeSerif9pt7b);
+    display.setCursor(2, 96); 
+    display.print("Rotary");
+    display.setFont(&FreeMonoBold9pt7b);
+    display.setCursor(3, 120); 
+    display.print("Cell");
+    display.setFont(&FreeSans9pt7b);
+    display.setCursor(48, 120); 
+    display.print("Phone");
+  } while (display.nextPage());
+  
+	delay(5000);                        // FONA can take up to 5-6s to start, the welcome screen took >1s
   // Initialise the FONA
   FONAserial.println("AT");           // Helps baud rate auto selection: https://en.wikipedia.org/wiki/Hayes_command_set#Autobaud
   Serial.println(FONAread(50));       // wait up to 50ms for start of reply then send reply over USB serial
@@ -205,8 +227,8 @@ void setup(){
 	FONAserial.println("AT+CSDVC=3");  	// Set audio output channel. 3 is the speaker.
 	Serial.println(FONAread(50));
   delay(13);
-	FONAserial.println("AT+CRXGAIN=10000");	// Set Rx Gain, which affects the speaker volume during calls. This is a good value for use of the speaker as a handset.
-	Serial.println(FONAread(50));
+	FONAserial.println("AT+CRXGAIN=10000");	// Set Rx Gain, (max ‭value 65,536‬) which affects the speaker volume during calls...
+	Serial.println(FONAread(50));           // 10000 is a good value for use of the speaker as a handset (if aged under 50)!
   delay(13);
 	FONAserial.println("AT+CLVL=3");  	// Set volume (0-8)
 	Serial.println(FONAread(50));
@@ -214,15 +236,15 @@ void setup(){
 	FONAserial.println("AT+CRSL=8");   	// Ringer volume (0-8)
   Serial.println(FONAread(50));
   delay(13);
-  FONAserial.println("AT+CTZU=1");    // Enable automatic time & time zone update from cell network. This is stored in non-volatile...
-  Serial.println(FONAread(50));       // memory, so after it's sent to the FONA once, these 2 lines can be commented out.
+  //****  The following AT commands are stored in non-volatile memory. After sending to the FONA once, these lines can be commented out.
+  FONAserial.println("AT+CTZU=1");    // Enable automatic time & time zone update from cell network.
+  Serial.println(FONAread(50));
+  delay(13);
+  FONAserial.println("AT+CLIP=1");    // Enable 'Calling line identification presentation' (caller ID messages)
+  Serial.println(FONAread(50));
 
 	n = 0;    //Starting phone number digit value is 0
 	k = 0;    //Starting phone number digit position is 1
-
-	display.init(115200);
-	display.setRotation(0);
-	display.setTextColor(GxEPD_BLACK);
 
 	digitalWrite(StatusLED, HIGH);
 	delay(500);
@@ -233,17 +255,44 @@ void setup(){
 
 
 void loop() {
-  if (longTimer >= 100000) {               // Do something here periodically (max 4,294,967,295),
-    longTimer = 0;                         // approx 100us per count (with no switch press delays)
-    Serial.println(F("Long timer tick"));  // Here we update display with cell network time every 10s
-    if (!(StartTimeSinceLastPulse == true || StillOn == true)) {  // Only update if dial not in use.
-      displayTime();
-    }
-    //Serial.print("FONA: ");
-    //Serial.println(FONAread(0));
+
+  if (digitalRead(ModeSwitch_631) == LOW)
+    mode = 1;
+  else if (digitalRead(ModeSwitch_NP) == LOW)
+    mode = 2;
+  else if (digitalRead(ModeSwitch_alt) == LOW)
+    mode = 3;
+
+  // ***************************** Periodic stuff:
+  if (shortTimer > 9430) {      // Do something quick (<5ms to not affect dial timing) every 1s
+    shortTimer = 0;             // Hint: this would also be a good place to insert call state parsing
+    //Serial.println(F("Short timer tick"));   // Optional for debugging
+    checkCID();                 // Check if a caller ID is in the serial buffer
+    longTimer++;
   }
-  longTimer++;
-	
+  shortTimer++;
+  
+  if (longTimer > 10) {                      // Do something here periodically approx ever 10s...
+    longTimer = 0;                           // we can do something that takes more than 5ms only if the dial not in use
+    //Serial.println(F("Long timer tick"));  // Here we update display with cell network time every 10s
+    if (!(StartTimeSinceLastPulse == true || StillOn == true)) {  // If the dial is not in use, do periodic stuf...
+      switch (mode) {
+        case 1:    // Do periodic stuff if in prepend mode
+          displayCID();
+          break;
+        case 2:    // Do periodic stuff if in no prepend mode
+          displayCID();
+          break;
+        case 3:    // Do periodic stuff if in alt mode
+          displayTime();
+          break;
+        default:   // Not needed but here it is anyway
+          break;
+      }
+    }
+  }
+  // ***************************** End periodic stuff
+
 	if (CallOn == true){
 		digitalWrite(HookLED, HIGH);
 	}
@@ -251,20 +300,11 @@ void loop() {
 		digitalWrite(HookLED, LOW);
 	}
 
-  if (TimeSinceLastPulse > 30000) {   // Interdigit pause? Approx 3s since last dialled number.
+  if (TimeSinceLastPulse > 30000) {   // Interdigit pause? Approx 3s since last dialled number (800ms is standard pause).
     StartTimeSinceLastPulse = false;  // reset here otherwise StartTimeSinceLastPulse never goes high after first...
     TimeSinceLastPulse = 0;           // dial and TimeSinceLastPulse counts forever - so reset here.
   }
 
-	if (digitalRead(ModeSwitch_631) == LOW){
-		mode = 1;
-	}
- 	else if (digitalRead(ModeSwitch_NP) == LOW){
-		mode = 2;
-	}
-	else if (digitalRead(ModeSwitch_alt) == LOW){
-		mode = 3;
-	}
 
 	//*********************ROTARY DIAL INPUT & FUNCTION BUTTON*******************************************************************************
 	if (digitalRead(ModeSwitch_631) == LOW || digitalRead(ModeSwitch_NP) == LOW){

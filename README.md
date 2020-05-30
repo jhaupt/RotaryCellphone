@@ -7,9 +7,9 @@ Incoming caller ID is working. The display will show either date/time or caller 
 
 There's a new welcome display with logo to show how easily bitmaps can be displayed. Perhaps leading to functional icons.
 
-I don't intend to add much more... otherwise I would buy a smartphone! I welcome reports of bugs/issues then I'll likely archive this after a few months. There are too many possibilities for localisation and customisation and I don't want to get involved in this (publically).
+I don't intend to add much more... otherwise I would buy a smartphone! I welcome reports of bugs/issues then I'll likely archive this after a few months. There are too many possibilities for localisation and customisation and I don't want to get too tied up with this. After all this is a DIY project, have fun with customisations, make it personal.
 
-Enjoy, it's been a fun build in lockdown!
+Enjoy, it's been fun building this in lockdown!
 
 Thanks Justine.
 

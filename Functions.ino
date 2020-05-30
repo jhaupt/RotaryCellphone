@@ -357,16 +357,55 @@ void BarGraphWipeDown(){
   digitalWrite(BGLED10, LOW);
 }
 
+void displayCID() {
+  display.setPartialWindow(0, 185, 104, 27);    // Partial update bottom 27 rows of pixels
+  display.firstPage();  //this function is called before every time ePaper is updated.
+  do {
+    display.fillScreen(GxEPD_WHITE); // set the background to white (fill the buffer with value for white)
+    display.setFont();  //Back to default font
+    display.setCursor(2, 185); 
+    display.print("Missed call:");
+    display.setCursor(2, 200); 
+    display.print(callerID);
+  } while (display.nextPage());
+  display.setFullWindow();          // back to full window
+  display.powerOff();
+}
+
+void checkCID() {                                // Check for a caller ID message
+  buffer = FONAread(0);                          // get any FONA message,. no waiting
+  if ((buffer.indexOf("+CLIP:")) > -1) {         // Yes, we have a caller ID (eg): +CLIP: "02152063113",128,,,,0
+    byte index1 = buffer.indexOf("+CLIP:")+8;    // Get index of CID keyword
+    byte index2 = buffer.indexOf("\"", index1);  // Get index of second '"'
+    byte index3 = buffer.indexOf("\r", index2);  // Get index of end of line
+    callerID = buffer.substring(index1, index2); // Extract caller ID field
+    int IDtype = (buffer.substring(index3 - 1, index3)).toInt();  // Parse CLI validity code, last digit on line.
+    switch (IDtype) {
+      case 0:                       // 0 = CLI valid
+        // Do nothing (unless you want to parse CLI)
+        break;
+      case 1:                       // 1 = CLI has been withheld by the originator
+        callerID = "Withheld";
+        break;
+      case 2:                       // 2 = CLI is not available due to inter-network problems or limitations
+        callerID = "Not available";
+        break;                  
+      default:                      // Only ID types 0-2 are valid
+        callerID = "CLI invalid";
+    }
+  }
+}
+
 void displayTime() {           //  Use e-paper partial update to display date/time
   getTime();
-  Serial.print("RTC: ");  // Send date/time over serial USB for debugging
+  Serial.print("RTC: ");       // Send date/time over serial USB for debugging
   Serial.printf("%d/%d/%d  %02d:%02d\n", rtcDay, rtcMonth, rtcYear+2000, rtcHour, rtcMin);
-  display.setPartialWindow(0, 185, 104, 26);    // Partial update of bottom 26 rows of pixels
+  display.setPartialWindow(0, 185, 104, 27);    // Partial update bottom 27 rows of pixels
   display.firstPage();  //this function is called before every time ePaper is updated.
   do {
     display.fillScreen(GxEPD_WHITE);
     display.setFont();             //Back to default font
-    display.setCursor(5, 185);
+    display.setCursor(5, 186);
     display.print(dowStr);
     display.printf(" %d ", rtcDay);
     display.print(monthStr);
@@ -380,7 +419,7 @@ void displayTime() {           //  Use e-paper partial update to display date/ti
 
 void getTime() {
   FONAserial.println("AT+CCLK?");          //Get RTC values
-  buffer = FONAread(50);                  //Wait up to 50ms for first character
+  buffer = FONAread(20);                   //Wait up to 20ms for first character
   if ((buffer.indexOf("+CCLK:")) > -1) {
     byte index = buffer.indexOf("+CCLK:");         // Typical RTC msg from FONA: +CCLK: "20/05/25,21:26:08+04"
     buffer = buffer.substring(index+8, index+25);  // Buffer contains RTC in typ format: 20/05/25,21:26:08+04

@@ -5,12 +5,12 @@ void DisplayContacts(){
 		display.firstPage();	//this function is called before every time ePaper is updated. Has nothing to do with what I call page numbers in this section of the program.
 		do {
 			display.fillScreen(GxEPD_WHITE); // set the background to white (fill the buffer with value for white)
-			display.setFont();	//Back to default font
-			display.setCursor(2, 185); 
-			display.print("Missed call:");
-			display.setFont(&FreeMonoBold9pt7b);
-			display.setCursor(8, 208); 
-			display.print("???-????");
+			//display.setFont();  //Back to default font - optional comment out these lines since they will replaced by date or CLI from main loop.
+      //display.setCursor(2, 185); 
+      //display.print("Missed call:");
+      //display.setFont(&FreeMonoBold9pt7b);
+      //display.setCursor(8, 208); 
+      //display.print("???-????");
 			display.setFont(&FreeSans9pt7b);
 			display.setCursor(5, 60); 
 			display.print("Wireless");
