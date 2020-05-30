@@ -1,21 +1,17 @@
 # RotaryCellphone
-Firmware for the Open Source Rotary Cellphone
+The motive behind this fork is to get the original firmware (April 2020), to a fully functional base. It is not the intention to add a host of new functions, localisation or customisation but simply to get the original framework to fully functional state.
 
-Regarding references to "ModeSwitch_631". The mode switch is a SP3T switch which changes the operating mode of the phone. The primary mode, as listed in this code,is "631", which is my area code. In this mode, 631 is prepended automatically to any 7 digit numbers dialed. All instances of this must be changed to your preferred area code. The other two modes are "NP" and "Alt". NP stands for "no prepend", to enter full 10-digit numbers, and "Alt" is the alternate mode. To minimize the total number of switches, the function of the bottom four buttons on the phone changes depending on the position of the mode switch. 
+There is one new function; what phone doesn't tell the time? An analog clock would be appropriate but for now it's a simple 2 line digital date/time display.
 
-Arduino IDE needs board support for 2560V. For this, add "MegaCore" board configuration from here: https://github.com/MCUdude/MegaCore
+Incoming caller ID is working. The display will show either date/time or caller ID depending on the postion of the mode switch. They show at the bottom of the display using fast partial updates. Suggestion: it's possible the caller ID message will include a name if the number is found in the FONA/Sim address book. If so the caller ID could easily show a name. See the AT+CLIP section of the SIMCom AT Command Set manual for more information.
 
-Also add the Adafruit EOD and the GxEPD2 libraries, which can be added from within the Arduino IDE by going to tools > Manage Libraries...
+There's a new welcome display with logo to show how easily bitmaps can be displayed. Perhaps leading to functional icons.
 
-Use an AVR-ISP-MK2 to flash firmware. This is much easier than dealing with the USB port for programming. Just plug the programmer into the ICSP header and use "Ctrl+Shift+U" within the Arduino IDE to compile and upload. No need to pick a dev assignment for the USB port.
+I don't intend to add much more... otherwise I would buy a smartphone! I welcome reports of bugs/issues then I'll likely archive this after a few months. There are too many possibilities for localisation and customisation and I don't want to get involved in this (publically).
 
-The board settings under Tools in the Arduino IDE should be as follows (after installing the above MegaCore thingy):
-Board: ATmega2560
-Clock: External 8MHz
-BOD: BOD 2.7v
-Compiler LTO: LTO enabled
-Pinout: Arduino MEGA pinout
-Bootloader: Yes (UART0)
+Enjoy, it's been a fun build in lockdown!
+
+Thanks Justine.
 
 ## Issues & Troubleshooting
 ### Hardware mod
@@ -47,6 +43,6 @@ This fork will not attempt localisation (nor localization)! There's a big world 
 
 - Display time from cell network - *done*
 
-- Parse and display incoming call ID... *in progress*...
+- Parse and display incoming call ID - *done*
 
-- Get NP mode to dial variable length (8-15) numbers (de-localisation!)...
+- Get NP mode to dial variable length numbers - *maybe*...
