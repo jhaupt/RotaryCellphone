@@ -7,6 +7,8 @@ Incoming caller ID is working. The display will show either date/time or caller 
 
 There's a new welcome display with logo to show how easily bitmaps can be displayed. Perhaps leading to functional icons.
 
+There's no change to Contacts.ino except to optionally comment 6 lines near the top that display caller ID "???-????". Make sure to archive any Contacts.ino customisation, don't lose them.
+
 I don't intend to add much more... otherwise I would buy a smartphone! I welcome reports of bugs/issues then I'll likely archive this after a few months. There are too many possibilities for localisation and customisation and I don't want to get too tied up with this. After all this is a DIY project, have fun with customisations, make it personal.
 
 Enjoy, it's been fun building this in lockdown!
