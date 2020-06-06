@@ -1,89 +1,93 @@
 void RotaryIn(){   //Listen for pulses from the rotary dial. NO LOOP here. This runs once per iteration of "void loop", so the timing of other things in the main loop will affect this.
-	if (digitalRead(RotaryPulseIn) == HIGH){    //If the pin connected to the rotary dial goes high...
-		StartTimeSinceLastPulse = true;
-		if (StillOn == false){     //...and if we're not still in the same (continuous) pulse from the previous iteration of void loop()...
-			BarGraphFast(n+1);
-			n++;    //...Increment the counter...
-			if (n == 10){
-				n = 0;
-			}
-			delay(10);
-		}
-		StillOn = true;   // ...and turn on the flag that says a pulse just happened.
-	}
+  if (digitalRead(RotaryPulseIn) == HIGH){    //If the pin connected to the rotary dial goes high...
+    StartTimeSinceLastPulse = true;
+    if (StillOn == false){  // ...and if we're not still in the same (continuous) pulse from the previous iteration of void loop()...
+      BarGraphFast(n+1);
+      n++;                  //...Increment the counter...
+      if (n == 10){
+        n = 0;
+      }
+      delay(10);
+    }
+    StillOn = true;         // ...and turn on the flag that says a pulse just happened.
+  }
 
-	if (StillOn == true){     //If a pulse just happened...
-		if ((digitalRead(RotaryPulseIn) == LOW)){   //See if the pin connected to the rotary dial goes low...
-			StillOn = false;    //...if it did, we turn off the "StillOn" flag.
-			digitalWrite(StatusLED, HIGH);
-			delay(20);
-			digitalWrite(StatusLED, LOW);
-			delay(40);
-			TimeSinceLastPulse = 0;     //Reset the time since last pulse (not really time... rather a counter for "void loop").
-		}
-	}
+  if (StillOn == true){     //If a pulse just happened...
+    if ((digitalRead(RotaryPulseIn) == LOW)){   //See if the pin connected to the rotary dial goes low...
+      StillOn = false;      //...if it did, we turn off the "StillOn" flag.
+      digitalWrite(StatusLED, HIGH);
+      delay(20);
+      digitalWrite(StatusLED, LOW);
+      delay(40);
+      TimeSinceLastPulse = 0;     //Reset the time since last pulse (not really time... rather a counter for "void loop").
+    }
+  }
 
-	if (StartTimeSinceLastPulse == true){
-		TimeSinceLastPulse++;
-	}
+  if (StartTimeSinceLastPulse == true){
+    TimeSinceLastPulse++;
+  }
 
-	if (TimeSinceLastPulse == 1000){    //If a long enough time has lapsed since the last pulse from the rotary dial, assume the dial has stopped rotating...
-		PNumber[k] = n;    //...and write the current value of n to the current position (k) in the phone number (PNumber)
-		k++;      //increment to the next position of the phone number
-		FONAserial.print("AT+CPTONE=");	//Play DTMF tone over speaker
-		FONAserial.println(n);
-		delay(20);
-		FONAserial.print("AT+VTS=");	//Send DTMF tone over network (for menu entries, etc).
-		FONAserial.println(n);
-		newrotaryinput = true;
-		n = 0;  //reset n
-	}
+  if (TimeSinceLastPulse == 800){    // If standard inter-digit pause (800ms) has elapsed...
+    PNumber[k] = n;                  // write the current value of n to the current position (k) in the phone number (PNumber)
+    k++;                             // increment to the next position of the phone number.
+    FONAserial.print("AT+CPTONE=");  // Play DTMF tone over speaker
+    if (n != 0)                      // Oh no! We have to convert 0 -> 10 for speaker tones
+      FONAserial.println(n);
+    else                             // Send 10 instead of 0
+      FONAserial.println(10);        // otherwise you get a missing tone when dialling 0.
+    delay(20);
+    FONAserial.print("AT+VTS=");     //Send DTMF tone over network (for menu entries, etc).
+    FONAserial.println(n);
+    Serial.println(n);
+    newrotaryinput = true;
+    n = 0;  //reset n
+  }
 }
 
 void StarPoundRotaryIn(){   //Listen for pulses from the rotary dial. NO LOOP here. This runs once per iteration of "void loop", so the timing of other things in the main loop will affect this.
-	if (digitalRead(RotaryPulseIn) == HIGH){    //If the pin connected to the rotary dial goes high...
-		StartTimeSinceLastPulse = true;
-		if (StillOn == false){     //...and if we're not still in the same (continuous) pulse from the previous iteration of void loop()...
-			BarGraphFast(n+1);
-			n++;    //...Increment the counter...
-			if (n == 10){
-				n = 0;
-			}
-			delay(10);
-		}
-		StillOn = true;   // ...and turn on the flag that says a pulse just happened.
-	}
+  if (digitalRead(RotaryPulseIn) == HIGH){  //If the pin connected to the rotary dial goes high...
+    StartTimeSinceLastPulse = true;
+    if (StillOn == false){                  //...and if we're not still in the same (continuous) pulse from the previous iteration of void loop()...
+      BarGraphFast(n+1);
+      n++;    //...Increment the counter...
+      if (n == 10){
+        n = 0;
+      }
+      delay(10);
+    }
+    StillOn = true;   // ...and turn on the flag that says a pulse just happened.
+  }
 
-	if (StillOn == true){     //If a pulse just happened...
-		if ((digitalRead(RotaryPulseIn) == LOW)){   //See if the pin connected to the rotary dial goes low...
-			StillOn = false;    //...if it did, we turn off the "StillOn" flag.
-			digitalWrite(StatusLED, HIGH);
-			delay(20);
-			digitalWrite(StatusLED, LOW);
-			delay(40);
-			TimeSinceLastPulse = 0;     //Reset the time since last pulse (not really time... rather a counter for "void loop").
-		}
-	}
+  if (StillOn == true){     //If a pulse just happened...
+    if ((digitalRead(RotaryPulseIn) == LOW)){   //See if the pin connected to the rotary dial goes low...
+      StillOn = false;    //...if it did, we turn off the "StillOn" flag.
+      digitalWrite(StatusLED, HIGH);
+      delay(20);
+      digitalWrite(StatusLED, LOW);
+      delay(40);
+      TimeSinceLastPulse = 0;     //Reset the time since last pulse (not really time... rather a counter for "void loop").
+    }
+  }
 
-	if (StartTimeSinceLastPulse == true){
-		TimeSinceLastPulse++;
-	}
+  if (StartTimeSinceLastPulse == true){
+    TimeSinceLastPulse++;
+  }
 
-	if (TimeSinceLastPulse == 1000){    //If a long enough time has lapsed since the last pulse from the rotary dial, assume the dial has stopped rotating...
-		PNumber[k] = n;    //...and write the current value of n to the current position (k) in the phone number (PNumber)
-		k++;      //increment to the next position of the phone number
-		if (n == 2){		//Consider this a "*"
-			FONAserial.println("AT+CPTONE=*");	//Play DTMF tone over speaker				
-			delay(20);
-			FONAserial.println("AT+VTS=*");	//Send DTMF tone over network (for menu entries, etc).
-		}
-		else if (n == 1){	//Consider this a "#"
-			FONAserial.println("AT+CPTONE=#");	//Play DTMF tone over speaker				
-			delay(20);
-			FONAserial.println("AT+VTS=#");	//Send DTMF tone over network (for menu entries, etc).
-		}
-		n = 0;  //reset n
-	}
+  if (TimeSinceLastPulse == 800) {         // If standard inter-digit pause (800ms) has elapsed...
+    PNumber[k] = n;    //...and write the current value of n to the current position (k) in the phone number (PNumber)
+    k++;      //increment to the next position of the phone number
+    if (n == 2){    //Consider this a "*"
+      FONAserial.println("AT+CPTONE=*");  //Play DTMF tone over speaker        
+      delay(20);
+      FONAserial.println("AT+VTS=*");     //Send DTMF tone over network (for menu entries, etc).
+    }
+    else if (n == 1){  //Consider this a "#"
+      FONAserial.println("AT+CPTONE=#");  //Play DTMF tone over speaker        
+      delay(20);
+      FONAserial.println("AT+VTS=#");     //Send DTMF tone over network (for menu entries, etc).
+    }
+    n = 0;  //reset n
+  }
 }
 
 
@@ -107,184 +111,181 @@ String FONAread(long int timeout) {
 
 
 void ClearBuffer(){  //Clear the currently entered phone number
-	PNumber[0] = 99;  //Reset the phone number
-	PNumber[1] = 99;
-	PNumber[2] = 99;
-	PNumber[3] = 99;
-	PNumber[4] = 99;
-	PNumber[5] = 99;
-	PNumber[6] = 99;
-	PNumber[7] = 99;
-	PNumber[8] = 99;
-	PNumber[9] = 99;
-	PNumber[10] = 99;
-	PNumber[11] = 99;
-	PNumber[12] = 99;
-	PNumber[13] = 99;
-	PNumber[14] = 99;
-	PNumber[15] = 99;
-	k = 0;    //Reset the position of the phone number
-	newrotaryinput = false;
-	BarGraphWipeUp();
+  PNumber[0] = 99;   //Reset the phone number
+  PNumber[1] = 99;
+  PNumber[2] = 99;
+  PNumber[3] = 99;
+  PNumber[4] = 99;
+  PNumber[5] = 99;
+  PNumber[6] = 99;
+  PNumber[7] = 99;
+  PNumber[8] = 99;
+  PNumber[9] = 99;
+  PNumber[10] = 99;
+  PNumber[11] = 99;
+  PNumber[12] = 99;
+  PNumber[13] = 99;
+  PNumber[14] = 99; 
+  PNumber[15] = 99;
+  newrotaryinput = false;
+  k = 0;           // Reset the position of the phone number
+  BarGraphWipeUp();
 }
 
 void ClearBufferSilent(){  //Clear the currently entered phone number
-	PNumber[0] = 99;  //Reset the phone number
-	PNumber[1] = 99;
-	PNumber[2] = 99;
-	PNumber[3] = 99;
-	PNumber[4] = 99;
-	PNumber[5] = 99;
-	PNumber[6] = 99;
-	PNumber[7] = 99;
-	PNumber[8] = 99;
-	PNumber[9] = 99;
-	PNumber[10] = 99;
-	PNumber[11] = 99;
-	PNumber[12] = 99;
-	PNumber[13] = 99;
-	PNumber[14] = 99;
-	PNumber[15] = 99;
-	newrotaryinput = false;
-	k = 0;    //Reset the position of the phone number
+  PNumber[0] = 99;         //Reset the phone number
+  PNumber[1] = 99;
+  PNumber[2] = 99;
+  PNumber[3] = 99;
+  PNumber[4] = 99;
+  PNumber[5] = 99;
+  PNumber[6] = 99;
+  PNumber[7] = 99;
+  PNumber[8] = 99;
+  PNumber[9] = 99;
+  PNumber[10] = 99;
+  PNumber[11] = 99;
+  PNumber[12] = 99;
+  PNumber[13] = 99;
+  PNumber[14] = 99;
+  PNumber[15] = 99;
+  newrotaryinput = false;
+  k = 0;           // Reset the position of the phone number
 }
 
 void BarGraphSlow(int level){
-  Serial.print(F("Bargraph: "));
-	Serial.println(level);
-	if (level >= 1){
-		digitalWrite(BGLED1, HIGH);
-	}
-	if (level >= 2){
-		digitalWrite(BGLED2, HIGH);
-	}
-	if (level >= 3){
-		digitalWrite(BGLED3, HIGH);
-	}
-	if (level >= 4){
-		digitalWrite(BGLED4, HIGH);
-	}
-	if (level >= 5){
-		digitalWrite(BGLED5, HIGH);
-	}
-	if (level >= 6){
-		digitalWrite(BGLED6, HIGH);
-	}
-	if (level >= 7){
-		digitalWrite(BGLED7, HIGH);
-	}
-	if (level >= 8){
-		digitalWrite(BGLED8, HIGH);
-	}
-	if (level >= 9){
-		digitalWrite(BGLED9, HIGH);
-	}
-	if (level >= 10){
-		digitalWrite(BGLED10, HIGH);
-	}
-	delay(200);
-	digitalWrite(BGLED1, LOW);
-	digitalWrite(BGLED2, LOW);
-	digitalWrite(BGLED3, LOW);
-	digitalWrite(BGLED4, LOW);
-	digitalWrite(BGLED5, LOW);
-	digitalWrite(BGLED6, LOW);
-	digitalWrite(BGLED7, LOW);
-	digitalWrite(BGLED8, LOW);
-	digitalWrite(BGLED9, LOW);
-	digitalWrite(BGLED10, LOW);
-	delay(100);
+  if (level >= 1){
+    digitalWrite(BGLED1, HIGH);
+  }
+  if (level >= 2){
+    digitalWrite(BGLED2, HIGH);
+  }
+  if (level >= 3){
+    digitalWrite(BGLED3, HIGH);
+  }
+  if (level >= 4){
+    digitalWrite(BGLED4, HIGH);
+  }
+  if (level >= 5){
+    digitalWrite(BGLED5, HIGH);
+  }
+  if (level >= 6){
+    digitalWrite(BGLED6, HIGH);
+  }
+  if (level >= 7){
+    digitalWrite(BGLED7, HIGH);
+  }
+  if (level >= 8){
+    digitalWrite(BGLED8, HIGH);
+  }
+  if (level >= 9){
+    digitalWrite(BGLED9, HIGH);
+  }
+  if (level >= 10){
+    digitalWrite(BGLED10, HIGH);
+  }
+  delay(200);
+  digitalWrite(BGLED1, LOW);
+  digitalWrite(BGLED2, LOW);
+  digitalWrite(BGLED3, LOW);
+  digitalWrite(BGLED4, LOW);
+  digitalWrite(BGLED5, LOW);
+  digitalWrite(BGLED6, LOW);
+  digitalWrite(BGLED7, LOW);
+  digitalWrite(BGLED8, LOW);
+  digitalWrite(BGLED9, LOW);
+  digitalWrite(BGLED10, LOW);
+  delay(100);
 }
 
 void BarGraphFast(int level){
-	Serial.println(level);
-	if (level >= 1){
-		digitalWrite(BGLED1, HIGH);
-	}
-	if (level >= 2){
-		digitalWrite(BGLED2, HIGH);
-	}
-	if (level >= 3){
-		digitalWrite(BGLED3, HIGH);
-	}
-	if (level >= 4){
-		digitalWrite(BGLED4, HIGH);
-	}
-	if (level >= 5){
-		digitalWrite(BGLED5, HIGH);
-	}
-	if (level >= 6){
-		digitalWrite(BGLED6, HIGH);
-	}
-	if (level >= 7){
-		digitalWrite(BGLED7, HIGH);
-	}
-	if (level >= 8){
-		digitalWrite(BGLED8, HIGH);
-	}
-	if (level >= 9){
-		digitalWrite(BGLED9, HIGH);
-	}
-	if (level >= 10){
-		digitalWrite(BGLED10, HIGH);
-	}
-	delay(20);
-	digitalWrite(BGLED1, LOW);
-	digitalWrite(BGLED2, LOW);
-	digitalWrite(BGLED3, LOW);
-	digitalWrite(BGLED4, LOW);
-	digitalWrite(BGLED5, LOW);
-	digitalWrite(BGLED6, LOW);
-	digitalWrite(BGLED7, LOW);
-	digitalWrite(BGLED8, LOW);
-	digitalWrite(BGLED9, LOW);
-	digitalWrite(BGLED10, LOW);
+  if (level >= 1){
+    digitalWrite(BGLED1, HIGH);
+  }
+  if (level >= 2){
+    digitalWrite(BGLED2, HIGH);
+  }
+  if (level >= 3){
+    digitalWrite(BGLED3, HIGH);
+  }
+  if (level >= 4){
+    digitalWrite(BGLED4, HIGH);
+  }
+  if (level >= 5){
+    digitalWrite(BGLED5, HIGH);
+  }
+  if (level >= 6){
+    digitalWrite(BGLED6, HIGH);
+  }
+  if (level >= 7){
+    digitalWrite(BGLED7, HIGH);
+  }
+  if (level >= 8){
+    digitalWrite(BGLED8, HIGH);
+  }
+  if (level >= 9){
+    digitalWrite(BGLED9, HIGH);
+  }
+  if (level >= 10){
+    digitalWrite(BGLED10, HIGH);
+  }
+  delay(20);
+  digitalWrite(BGLED1, LOW);
+  digitalWrite(BGLED2, LOW);
+  digitalWrite(BGLED3, LOW);
+  digitalWrite(BGLED4, LOW);
+  digitalWrite(BGLED5, LOW);
+  digitalWrite(BGLED6, LOW);
+  digitalWrite(BGLED7, LOW);
+  digitalWrite(BGLED8, LOW);
+  digitalWrite(BGLED9, LOW);
+  digitalWrite(BGLED10, LOW);
 }
 
 void BarGraphMed(int level){
-	Serial.println(level);
-	if (level >= 1){
-		digitalWrite(BGLED1, HIGH);
-	}
-	if (level >= 2){
-		digitalWrite(BGLED2, HIGH);
-	}
-	if (level >= 3){
-		digitalWrite(BGLED3, HIGH);
-	}
-	if (level >= 4){
-		digitalWrite(BGLED4, HIGH);
-	}
-	if (level >= 5){
-		digitalWrite(BGLED5, HIGH);
-	}
-	if (level >= 6){
-		digitalWrite(BGLED6, HIGH);
-	}
-	if (level >= 7){
-		digitalWrite(BGLED7, HIGH);
-	}
-	if (level >= 8){
-		digitalWrite(BGLED8, HIGH);
-	}
-	if (level >= 9){
-		digitalWrite(BGLED9, HIGH);
-	}
-	if (level >= 10){
-		digitalWrite(BGLED10, HIGH);
-	}
-	delay(80);
-	digitalWrite(BGLED1, LOW);
-	digitalWrite(BGLED2, LOW);
-	digitalWrite(BGLED3, LOW);
-	digitalWrite(BGLED4, LOW);
-	digitalWrite(BGLED5, LOW);
-	digitalWrite(BGLED6, LOW);
-	digitalWrite(BGLED7, LOW);
-	digitalWrite(BGLED8, LOW);
-	digitalWrite(BGLED9, LOW);
-	digitalWrite(BGLED10, LOW);
-	delay(50);
+  Serial.println(level);
+  if (level >= 1){
+    digitalWrite(BGLED1, HIGH);
+  }
+  if (level >= 2){
+    digitalWrite(BGLED2, HIGH);
+  }
+  if (level >= 3){
+    digitalWrite(BGLED3, HIGH);
+  }
+  if (level >= 4){
+    digitalWrite(BGLED4, HIGH);
+  }
+  if (level >= 5){
+    digitalWrite(BGLED5, HIGH);
+  }
+  if (level >= 6){
+    digitalWrite(BGLED6, HIGH);
+  }
+  if (level >= 7){
+    digitalWrite(BGLED7, HIGH);
+  }
+  if (level >= 8){
+    digitalWrite(BGLED8, HIGH);
+  }
+  if (level >= 9){
+    digitalWrite(BGLED9, HIGH);
+  }
+  if (level >= 10){
+    digitalWrite(BGLED10, HIGH);
+  }
+  delay(80);
+  digitalWrite(BGLED1, LOW);
+  digitalWrite(BGLED2, LOW);
+  digitalWrite(BGLED3, LOW);
+  digitalWrite(BGLED4, LOW);
+  digitalWrite(BGLED5, LOW);
+  digitalWrite(BGLED6, LOW);
+  digitalWrite(BGLED7, LOW);
+  digitalWrite(BGLED8, LOW);
+  digitalWrite(BGLED9, LOW);
+  digitalWrite(BGLED10, LOW);
+  delay(50);
 }
 
 void BarGraphWipeUp(){
@@ -538,118 +539,84 @@ void BatteryLevel() {
 }
 
 void SignalStrength(){
-	while (digitalRead(SignalButton) == LOW){    // Loop for as long as the signal strength button is depressed.
-		FONAserial.println("AT+CSQ");	          	 // FONA returns signal quality; RSSI (dBm), BER (%)
-		buffer = FONAread(50);
-		if ((buffer.indexOf("+CSQ:")) > -1) {      // If valid response, extract the 'signal quality' message...
+  while (digitalRead(SignalButton) == LOW){    // Loop for as long as the signal strength button is depressed.
+    FONAserial.println("AT+CSQ");               // FONA returns signal quality; RSSI (dBm), BER (%)
+    buffer = FONAread(50);
+    if ((buffer.indexOf("+CSQ:")) > -1) {      // If valid response, extract the 'signal quality' message...
       digitalWrite(StatusLED, HIGH);           // Find of start of signal response, extract chars between start & comma...
-			buffer = buffer.substring((buffer.indexOf("+CSQ:"))+6, (buffer.indexOf(",")));
-			SigLevel = buffer.toFloat();		         // convert data type from string to float
+      buffer = buffer.substring((buffer.indexOf("+CSQ:"))+6, (buffer.indexOf(",")));
+      SigLevel = buffer.toFloat();             // convert data type from string to float
       Serial.print(F("SigLevel code: "));
       Serial.println(buffer);
       int SigBars = int(round((SigLevel * 10 / 31)));  // scale 0 - 31 as 0 - 10
       if (SigBars > 31)                                // 0-31 is valid range, 99 = not known or not detectable 
         SigBars = 0;
-			BarGraphSlow(SigBars);
-			digitalWrite(StatusLED, LOW);
-		}
-	}
+      BarGraphSlow(SigBars);
+      digitalWrite(StatusLED, LOW);
+    }
+  }
 }
 
 void MakeCall631(){
-	ToneReport();
-	FONAserial.print("ATD631");
-	Serial.print("ATD631");
-	FONAserial.print(PNumber[0]);
-	Serial.print(PNumber[0]);
-	FONAserial.print(PNumber[1]);
-	Serial.print(PNumber[1]);
-	FONAserial.print(PNumber[2]);
-	Serial.print(PNumber[2]);
-	FONAserial.print(PNumber[3]);
-	Serial.print(PNumber[3]);
-	FONAserial.print(PNumber[4]);
-	Serial.print(PNumber[4]);
-	FONAserial.print(PNumber[5]);
-	Serial.print(PNumber[5]);
-	FONAserial.print(PNumber[6]);
-	Serial.print(PNumber[6]);
-	FONAserial.println(";");
-	Serial.print(";");
-	delay(10);
-	Serial.println(FONAread(13));
-	digitalWrite(StatusLED, HIGH);
-	delay(500);
-	digitalWrite(StatusLED, LOW);
-	CallOn = true;
-	ClearBufferSilent();
+  ToneReport();
+  FONAserial.print("ATD631");
+  Serial.print("ATD631");
+  FONAserial.print(PNumber[0]);
+  Serial.print(PNumber[0]);
+  FONAserial.print(PNumber[1]);
+  Serial.print(PNumber[1]);
+  FONAserial.print(PNumber[2]);
+  Serial.print(PNumber[2]);
+  FONAserial.print(PNumber[3]);
+  Serial.print(PNumber[3]);
+  FONAserial.print(PNumber[4]);
+  Serial.print(PNumber[4]);
+  FONAserial.print(PNumber[5]);
+  Serial.print(PNumber[5]);
+  FONAserial.print(PNumber[6]);
+  Serial.print(PNumber[6]);
+  FONAread(13);                   // Clear the buffer (it will have overflowed due to echoing tone commands)
+  FONAserial.println(";");
+  Serial.print(";");
+  Serial.println(FONAread(13));
+  digitalWrite(StatusLED, HIGH);
+  delay(500);
+  digitalWrite(StatusLED, LOW);
+  CallOn = true;
+  ClearBufferSilent();
 }
 
-void MakeCall(){
-	ToneReport();
-	CallOn = true;
-	FONAserial.print("ATD");
-	Serial.print("ATD");
-	FONAserial.print(PNumber[0]);
-	Serial.print(PNumber[0]);
-	FONAserial.print(PNumber[1]);
-	Serial.print(PNumber[1]);
-	FONAserial.print(PNumber[2]);
-	Serial.print(PNumber[2]);
-	FONAserial.print(PNumber[3]);
-	Serial.print(PNumber[3]);
-	FONAserial.print(PNumber[4]);
-	Serial.print(PNumber[4]);
-	FONAserial.print(PNumber[5]);
-	Serial.print(PNumber[5]);
-	FONAserial.print(PNumber[6]);
-	Serial.print(PNumber[6]);
-	FONAserial.print(PNumber[7]);
-	Serial.print(PNumber[7]);
-	FONAserial.print(PNumber[8]);
-	Serial.print(PNumber[8]);
-	FONAserial.print(PNumber[9]);
-	Serial.print(PNumber[9]);
-	FONAserial.println(";");
-	Serial.println(";");
-	delay(100);
-	Serial.println(FONAread(13));
-	digitalWrite(StatusLED, HIGH);
-	delay(500);
-	digitalWrite(StatusLED, LOW);
-	CallOn = true;
-	ClearBufferSilent();
+void MakeCall(){                  // I really didn't want to use a loop here. Justine's original algorithm is so easy to follow
+  ToneReport();                   // but this do... while loop makes variable length dialling much easier.
+  CallOn = true;
+  byte dd = 0;                    // Dialled Digit index
+  FONAserial.print("ATD");
+  Serial.print("ATD");
+  do {
+    FONAserial.print(PNumber[dd]);
+    Serial.print(PNumber[dd]);
+    dd++;
+  } while (PNumber[dd] != 99 && dd < 16);
+  FONAread(0);                   // Clear the buffer (it will have overflowed due to echoing tone commands)
+  FONAserial.println(";");
+  Serial.println(";");
+  Serial.println(FONAread(13));
+  digitalWrite(StatusLED, HIGH);
+  delay(500);
+  digitalWrite(StatusLED, LOW);
+  CallOn = true;
+  ClearBufferSilent();
 }
 
-void ToneReport(){
-  FONAserial.print("AT+CPTONE=");	//Play DTMF tone over speaker
-  FONAserial.println(PNumber[0]);
-  BarGraphMed(PNumber[0]);
-  FONAserial.print("AT+CPTONE=");	//Play DTMF tone over speaker
-  FONAserial.println(PNumber[1]);
-  BarGraphMed(PNumber[1]);
-  FONAserial.print("AT+CPTONE=");	//Play DTMF tone over speaker
-  FONAserial.println(PNumber[2]);
-  BarGraphMed(PNumber[2]);
-  FONAserial.print("AT+CPTONE=");	//Play DTMF tone over speaker
-  FONAserial.println(PNumber[3]);
-  BarGraphMed(PNumber[3]);
-  FONAserial.print("AT+CPTONE=");	//Play DTMF tone over speaker
-  FONAserial.println(PNumber[4]);
-  BarGraphMed(PNumber[4]);
-  FONAserial.print("AT+CPTONE=");	//Play DTMF tone over speaker
-  FONAserial.println(PNumber[5]);
-  BarGraphMed(PNumber[5]);
-  FONAserial.print("AT+CPTONE=");	//Play DTMF tone over speaker
-  FONAserial.println(PNumber[6]);
-  BarGraphMed(PNumber[6]);
-  FONAserial.print("AT+CPTONE=");	//Play DTMF tone over speaker
-  FONAserial.println(PNumber[7]);
-  BarGraphMed(PNumber[7]);
-  FONAserial.print("AT+CPTONE=");	//Play DTMF tone over speaker
-  FONAserial.println(PNumber[8]);
-  BarGraphMed(PNumber[8]);
-  FONAserial.print("AT+CPTONE=");	//Play DTMF tone over speaker
-  FONAserial.println(PNumber[9]);
-  BarGraphMed(PNumber[9]);	
+void ToneReport() {               // Ditto for the speaker tones, let's use a conditional loop
+  byte dd = 0;
+  do {
+    FONAserial.print("AT+CPTONE=");     //Play DTMF tone over speaker
+    if (PNumber[dd] != 0)
+      FONAserial.println(PNumber[dd]);
+    else                                // Send 10 instead of 0 for speaker tones
+      FONAserial.println(10);
+    BarGraphMed(PNumber[dd]);
+    dd++;
+  } while (PNumber[dd] != 99 && dd < 16);
 }
