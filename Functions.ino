@@ -358,6 +358,21 @@ void BarGraphWipeDown(){
   digitalWrite(BGLED10, LOW);
 }
 
+int queryPAS() {                               // Get Phone Activity Status; 0=ready, 3=ringing, 4=call in progress
+  int PAS = 0;
+  FONAread(0);                                 // Clear receive buffer
+  delay(500);
+  FONAserial.println("AT+CPAS");
+  buffer = FONAread(13);                       // Read response (wait up to 13ms for first character)
+  Serial.print("PAS: ");
+  Serial.println(buffer);
+  int index = buffer.indexOf("+CPAS:");        // search for string in response,
+  if (index > -1) {                            // if we have a valid activity status response...
+    PAS = (buffer.substring(index+7, index+8)).toInt();
+  }
+  return PAS;
+}
+
 void displayCID() {
   display.setPartialWindow(0, 185, 104, 27);    // Partial update bottom 27 rows of pixels
   display.firstPage();  //this function is called before every time ePaper is updated.

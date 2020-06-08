@@ -217,28 +217,28 @@ void setup(){
   // Initialise the FONA
   FONAserial.println("AT");           // Helps baud rate auto selection: https://en.wikipedia.org/wiki/Hayes_command_set#Autobaud
   Serial.println(FONAread(50));       // wait up to 50ms for start of reply then send reply over USB serial
-  delay(13);
+  delay(50);
   FONAserial.println("AT+IPR=9600");  // Set baud rate on phone
   Serial.println(FONAread(50));
-  delay(13);
+  delay(50);
   FONAserial.println("AT+CVHU=0");    // Sets voice "hang up" control so that "ATH" disconnects voice calls.
   Serial.println(FONAread(50));
-  delay(13);
+  delay(50);
   FONAserial.println("AT+CSDVC=3");   // Set audio output channel. 3 is the speaker.
   Serial.println(FONAread(50));
-  delay(13);
+  delay(50);
   FONAserial.println("AT+CRXGAIN=10000");  // Set Rx Gain, (max ‭value 65,536‬) which affects the speaker volume during calls...
   Serial.println(FONAread(50));            // 10000 is a good value for use of the speaker as a handset (if aged under 50)!
-  delay(13);
+  delay(50);
   FONAserial.println("AT+CLVL=3");    // Set volume (0-8)
   Serial.println(FONAread(50));
-  delay(13);
+  delay(50);
   FONAserial.println("AT+CRSL=8");    // Ringer volume (0-8)
   Serial.println(FONAread(50));
-  delay(13);
+  delay(50);
   FONAserial.println("AT+CLIP=1");    // Enable 'Calling line identification presentation' (caller ID messages)
   Serial.println(FONAread(50));
-  delay(13);
+  delay(50);
   //****  The following AT commands are stored in non-volatile memory. After sending to the FONA once, these lines can be commented out.
   FONAserial.println("AT+CTZU=1");    // Enable automatic time & time zone update from cell network.
   Serial.println(FONAread(50));
@@ -255,6 +255,13 @@ void setup(){
 
 
 void loop() {
+
+  if (CallOn == true){
+    digitalWrite(HookLED, HIGH);
+  }
+  else if (CallOn == false){
+    digitalWrite(HookLED, LOW);
+  }
 
   if (digitalRead(ModeSwitch_631) == LOW)
     mode = 1;
@@ -293,12 +300,6 @@ void loop() {
   }
   // ***************************** End periodic stuff *****************************
 
-  if (CallOn == true){
-    digitalWrite(HookLED, HIGH);
-  }
-  else if (CallOn == false){
-    digitalWrite(HookLED, LOW);
-  }
 
   if (TimeSinceLastPulse > 30000) {   // Interdigit pause? Approx 3s since last dialled number?
     StartTimeSinceLastPulse = false;  // reset here otherwise StartTimeSinceLastPulse never goes high after first...
@@ -346,9 +347,11 @@ void loop() {
     //ANSWER INCOMING CALL IF CALLON = FALSE
     else if (CallOn == false){
       FONAserial.println("ATA");
-      //CallOn = true;  //!!!FIX!!!. The problem with turning the CallOn flag ON is that there's no check to see if a call was actually picked up.
+      //CallOn = true;      // !!!FIX!!!. The problem with turning the CallOn flag ON is that there's no check to see if a call was actually picked up.
+      if (queryPAS() == 4)  // FIXED! If call in progress...
+        CallOn = true;
     }
-    delay(400);    
+    delay(600);    
     //IF STILL HOLDING THE HOOK BUTTON BY ITSELF, HANGUP CALL REGARDLESS OF CALLON STATE
     if (digitalRead(HookButton) == LOW){ 
       FONAserial.println("ATH");
