@@ -274,7 +274,7 @@ void loop() {
   if (shortTimer > 9430) {                   // Do something quick every 1s (<5ms so as to not affect dial timing)
     shortTimer = 0;                          // Hint: this would also be a good place to insert call state parsing
     //Serial.println(F("Short timer tick")); // Optional for debugging
-    checkCID();                              // Check if a caller ID is in the serial buffer
+    checkAlerts();                           // Check for an alert from the FONA, e.g. incoming call? Caller ID?
     longTimer++;
   }
   shortTimer++;
@@ -348,8 +348,8 @@ void loop() {
     else if (CallOn == false){
       FONAserial.println("ATA");
       //CallOn = true;      // !!!FIX!!!. The problem with turning the CallOn flag ON is that there's no check to see if a call was actually picked up.
-    }
-    delay(600);    
+    }                       // FIXED! By testing for call begin and end messages every 1s with the queryAlert() function.
+    delay(800);             // Don't make this delay too short or we risk answering a call & immediately disconnecting!
     //IF STILL HOLDING THE HOOK BUTTON BY ITSELF, HANGUP CALL REGARDLESS OF CALLON STATE
     if (digitalRead(HookButton) == LOW){ 
       FONAserial.println("ATH");
