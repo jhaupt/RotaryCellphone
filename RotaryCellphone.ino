@@ -348,8 +348,6 @@ void loop() {
     else if (CallOn == false){
       FONAserial.println("ATA");
       //CallOn = true;      // !!!FIX!!!. The problem with turning the CallOn flag ON is that there's no check to see if a call was actually picked up.
-      if (queryPAS() == 4)  // FIXED! If call in progress...
-        CallOn = true;
     }
     delay(600);    
     //IF STILL HOLDING THE HOOK BUTTON BY ITSELF, HANGUP CALL REGARDLESS OF CALLON STATE

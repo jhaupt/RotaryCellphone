@@ -358,21 +358,6 @@ void BarGraphWipeDown(){
   digitalWrite(BGLED10, LOW);
 }
 
-int queryPAS() {                               // Get Phone Activity Status; 0=ready, 3=ringing, 4=call in progress
-  int PAS = 0;
-  FONAread(0);                                 // Clear receive buffer
-  delay(500);
-  FONAserial.println("AT+CPAS");
-  buffer = FONAread(13);                       // Read response (wait up to 13ms for first character)
-  Serial.print("PAS: ");
-  Serial.println(buffer);
-  int index = buffer.indexOf("+CPAS:");        // search for string in response,
-  if (index > -1) {                            // if we have a valid activity status response...
-    PAS = (buffer.substring(index+7, index+8)).toInt();
-  }
-  return PAS;
-}
-
 void displayCID() {
   display.setPartialWindow(0, 185, 104, 27);    // Partial update bottom 27 rows of pixels
   display.firstPage();  //this function is called before every time ePaper is updated.
@@ -528,10 +513,9 @@ void BatteryLevel() {
     while (tries < 2 && validMsg == false) {   // 2 tries to get valid battery charge message
       FONAserial.println("AT+CBC");            // The answer is in the form eg: +CBC: 0,100,4.232V
       buffer = FONAread(50);                   // Get response from FONA (wait up to 50ms for the first character).
-      if ((buffer.indexOf("+CBC: ")) > -1) {   // Was a valid response returned?
+      if ((buffer.indexOf("+CBC: ")) > -1)     // Was a valid response returned?
         validMsg = true;
-        tries++;
-      }
+      tries++;
     }
     if (validMsg == true) {                    // If valid response was returned in within 2 tries, process it...
       digitalWrite(StatusLED, HIGH);
