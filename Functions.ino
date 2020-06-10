@@ -30,13 +30,13 @@ void RotaryIn(){   //Listen for pulses from the rotary dial. NO LOOP here. This 
   if (TimeSinceLastPulse == 800){    // If standard inter-digit pause (800ms) has elapsed...
     PNumber[k] = n;                  // write the current value of n to the current position (k) in the phone number (PNumber)
     k++;                             // increment to the next position of the phone number.
-    FONAserial.print("AT+CPTONE=");  // Play DTMF tone over speaker
+    FONAserial.print(F("AT+CPTONE="));  // Play DTMF tone over speaker
     if (n != 0)                      // Oh no! We have to convert 0 -> 10 for speaker tones
       FONAserial.println(n);
     else                             // Send 10 instead of 0
       FONAserial.println(10);        // otherwise you get a missing tone when dialling 0.
     delay(20);
-    FONAserial.print("AT+VTS=");     //Send DTMF tone over network (for menu entries, etc).
+    FONAserial.print(F("AT+VTS="));     //Send DTMF tone over network (for menu entries, etc).
     FONAserial.println(n);
     Serial.println(n);
     newrotaryinput = true;
@@ -77,14 +77,14 @@ void StarPoundRotaryIn(){   //Listen for pulses from the rotary dial. NO LOOP he
     PNumber[k] = n;    //...and write the current value of n to the current position (k) in the phone number (PNumber)
     k++;      //increment to the next position of the phone number
     if (n == 2){    //Consider this a "*"
-      FONAserial.println("AT+CPTONE=*");  //Play DTMF tone over speaker        
+      FONAserial.println(F("AT+CPTONE=*"));  //Play DTMF tone over speaker        
       delay(20);
-      FONAserial.println("AT+VTS=*");     //Send DTMF tone over network (for menu entries, etc).
+      FONAserial.println(F("AT+VTS=*"));     //Send DTMF tone over network (for menu entries, etc).
     }
     else if (n == 1){  //Consider this a "#"
-      FONAserial.println("AT+CPTONE=#");  //Play DTMF tone over speaker        
+      FONAserial.println(F("AT+CPTONE=#"));  //Play DTMF tone over speaker        
       delay(20);
-      FONAserial.println("AT+VTS=#");     //Send DTMF tone over network (for menu entries, etc).
+      FONAserial.println(F("AT+VTS=#"));     //Send DTMF tone over network (for menu entries, etc).
     }
     n = 0;  //reset n
   }
@@ -95,6 +95,8 @@ void StarPoundRotaryIn(){   //Listen for pulses from the rotary dial. NO LOOP he
 // Return all serial data available from the FONA as a String object. The argument is the time to wait (ms) for 
 // the first character, can be zero or 13ms upwards (the battery would go flat before max delay). A small wait is 
 // useful where there might be a delay in FONA response. Note the SoftwareSerial buffer length is 63 characters.
+// Thanks to Cristian Steib for the SIM800L library and Vittorio Esposito for SIM800L(revised) from whom this
+// method/function is derived: https://github.com/VittorioEsposito/Sim800L-Arduino-Library-revised
 String FONAread(long int timeout) {
   long int timeOld = millis();
   while (!(FONAserial.available()) && !(millis() > timeOld + timeout)) {
@@ -358,21 +360,23 @@ void BarGraphWipeDown(){
   digitalWrite(BGLED10, LOW);
 }
 
-void checkAlerts() {                             // Check for unsolicited FONA message; incoming call? Caller ID?
-  buffer = FONAread(0);                          // get any FONA message in the receive buffer, no waiting
-  if (buffer.indexOf("BEGIN") > -1) {            // Did the FONA just receive a call?
-    CallOn = true;                               // We're probably in a call, set the CallOn flag.
+void checkAlerts() {                                // Check for unsolicited FONA message; incoming call? Caller ID?
+  buffer = FONAread(0);                             // get any FONA message in the receive buffer, no waiting
+  if (buffer.indexOf("BEGIN") > -1) {               // Did the FONA just receive a call?
+    CallOn = true;                                  // We're probably in a call, set the CallOn flag.
     Serial.println(F("INCOMING CALL"));
   }
-  if (buffer.indexOf("END:") > -1) {             // Did a call just end?
-    CallOn = false;                              // Reset the CallOn flag.
+  if (buffer.indexOf("END:") > -1) {                // Did a call just end?
+    CallOn = false;                                 // Reset the CallOn flag.
     Serial.println(F("CALL ENDED"));
   }
-  int index1 = buffer.indexOf("+CLIP:")+8;       // Check for Calling Line Identification (CLI) keyword (returns -1 if no Caller ID)
-  if (index1 > -1) {                             // Yes, we have a CLI (eg): +CLIP: "02152063113",128,,,,0
-    byte index2 = buffer.indexOf("\"", index1);  // Get index of second '"'
-    byte index3 = buffer.indexOf("\r", index2);  // Get index of end of line <CR>
-    callerID = buffer.substring(index1, index2); // Extract Caller ID. CLI includes a Caller ID if avail and a validity code.
+  int index1 = buffer.indexOf("+CLIP:");            // Check for Calling Line Identification (CLI) keyword (returns -1 if no Caller ID)
+  if (index1 > -1) {                                // Yes, we have a CLI (eg): +CLIP: "02152063113",128,,,,0
+    callHour = rtcHour;                             // Save the time
+    callMin = rtcMin;
+    byte index2 = buffer.indexOf("\"", index1+8);   // Get index of second '"'
+    byte index3 = buffer.indexOf("\r", index2);     // Get index of end of line <CR>
+    callerID = buffer.substring(index1+8, index2);  // Extract Caller ID. CLI includes a Caller ID if avail and a validity code.
     int IDtype = (buffer.substring(index3 - 1, index3)).toInt();  // Parse CLI validity code, the last digit on line before <CR>.
     switch (IDtype) {
       case 0:                       // 0 = CLI contains a valid Caller ID number.
@@ -391,25 +395,28 @@ void checkAlerts() {                             // Check for unsolicited FONA m
 }
 
 void displayCID() {
-  display.setPartialWindow(0, 185, 104, 27);    // Partial update bottom 27 rows of pixels
-  display.firstPage();  //this function is called before every time ePaper is updated.
+  display.setPartialWindow(0, 185, 104, 27);  // Partial update bottom 27 rows of pixels
+  display.firstPage();                        //this function is called before every time ePaper is updated.
   do {
-    display.fillScreen(GxEPD_WHITE); // set the background to white (fill the buffer with value for white)
-    display.setFont();  //Back to default font
-    display.setCursor(2, 185); 
-    display.print("Missed call:");
+    display.fillScreen(GxEPD_WHITE);          // set the background to white (fill the buffer with value for white)
+    display.setFont();                        //Back to default font
+    display.setCursor(2, 185);
+    display.print(F("Caller"));
+    if (callerID != "none") {
+      display.printf(" at %02d:%02d", callHour, callMin);
+    }
     display.setCursor(2, 200); 
     display.print(callerID);
   } while (display.nextPage());
-  display.setFullWindow();          // back to full window
+  display.setFullWindow();                    // back to full window
   display.powerOff();
 }
 
-void displayTime() {           //  Use e-paper partial update to display date/time
+void displayTime() {                          //  Use e-paper partial update to display date/time
   getTime();
-  Serial.print("RTC: ");       // Send date/time over serial USB for debugging
+  Serial.print(F("RTC: "));                   // Send date/time over serial USB for debugging
   Serial.printf("%d/%d/%d  %02d:%02d\n", rtcDay, rtcMonth, rtcYear+2000, rtcHour, rtcMin);
-  display.setPartialWindow(0, 185, 104, 27);    // Partial update bottom 27 rows of pixels
+  display.setPartialWindow(0, 185, 104, 27);  // Partial update bottom 27 rows of pixels
   display.firstPage();  //this function is called before every time ePaper is updated.
   do {
     display.fillScreen(GxEPD_WHITE);
@@ -427,12 +434,12 @@ void displayTime() {           //  Use e-paper partial update to display date/ti
 }
 
 void getTime() {
-  FONAserial.println("AT+CCLK?");          //Get RTC values
-  buffer = FONAread(20);                   //Wait up to 20ms for first character
+  FONAserial.println(F("AT+CCLK?"));               //Get RTC values
+  buffer = FONAread(20);                           //Wait up to 20ms for first character
   if ((buffer.indexOf("+CCLK:")) > -1) {
     byte index = buffer.indexOf("+CCLK:");         // Typical RTC msg from FONA: +CCLK: "20/05/25,21:26:08+04"
     buffer = buffer.substring(index+8, index+25);  // Buffer contains RTC in typ format: 20/05/25,21:26:08+04
-    //Serial.println(buffer);                    // send the buffer to USB serial if required for debugging
+    //Serial.println(buffer);                      // send the buffer to USB serial if required for debugging
     rtcYear = (buffer.substring(0, 2)).toInt();
     rtcMonth = (buffer.substring(3, 5)).toInt();
     rtcDay = (buffer.substring(6, 8)).toInt();
@@ -519,7 +526,7 @@ void BatteryLevel() {
     byte tries = 0;
     bool validMsg = false;
     while (tries < 2 && validMsg == false) {   // 2 tries to get valid battery charge message
-      FONAserial.println("AT+CBC");            // The answer is in the form eg: +CBC: 0,100,4.232V
+      FONAserial.println(F("AT+CBC"));         // The answer is in the form eg: +CBC: 0,100,4.232V
       buffer = FONAread(50);                   // Get response from FONA (wait up to 50ms for the first character).
       if ((buffer.indexOf("+CBC: ")) > -1)     // Was a valid response returned?
         validMsg = true;
@@ -528,11 +535,11 @@ void BatteryLevel() {
     if (validMsg == true) {                    // If valid response was returned in within 2 tries, process it...
       digitalWrite(StatusLED, HIGH);
       buffer = buffer.substring((buffer.indexOf("+CBC:"))+6, (buffer.indexOf("V\r"))+1);  // Extract all battery charge data fields
-      Serial.print("Battery: ");               // Optional: print battery charge data to USB serial for debugging
+      Serial.print(F("Battery: "));            // Optional: print battery charge data to USB serial for debugging
       Serial.println(buffer);                  // buffer should now contain battery charge in the form (eg): 0,82,4.050V (eg 82% battery)
       byte index = buffer.indexOf(",");        // find index of first comma, then extract everything between the two commas...
       buffer = buffer.substring(index+1, (buffer.indexOf(",", index+1)));  // buffer now contains string representing % battery charge.
-      //Serial.print("Battery: ");             // Optional print % battery charge to USB serial for debugging
+      //Serial.print(F("Battery: "));          // Optional print % battery charge to USB serial for debugging
       //Serial.print(buffer);
       //Serial.println("%");
       BattLevel = buffer.toFloat();            // Convert data type from string to integer
@@ -547,9 +554,9 @@ void BatteryLevel() {
 
 void SignalStrength(){
   while (digitalRead(SignalButton) == LOW){    // Loop for as long as the signal strength button is depressed.
-    FONAserial.println("AT+CSQ");               // FONA returns signal quality; RSSI (dBm), BER (%)
+    FONAserial.println(F("AT+CSQ"));           // FONA returns signal quality; RSSI (dBm), BER (%)
     buffer = FONAread(50);
-    if ((buffer.indexOf("+CSQ:")) > -1) {      // If valid response, extract the 'signal quality' message...
+    if ((buffer.indexOf("+CSQ:") > -1)) {      // If valid response, extract the 'signal quality' message...
       digitalWrite(StatusLED, HIGH);           // Find of start of signal response, extract chars between start & comma...
       buffer = buffer.substring((buffer.indexOf("+CSQ:"))+6, (buffer.indexOf(",")));
       SigLevel = buffer.toFloat();             // convert data type from string to float
@@ -566,8 +573,8 @@ void SignalStrength(){
 
 void MakeCall631(){
   ToneReport();
-  FONAserial.print("ATD631");
-  Serial.print("ATD631");
+  FONAserial.print(F("ATD631"));
+  Serial.print(F("ATD631"));
   FONAserial.print(PNumber[0]);
   Serial.print(PNumber[0]);
   FONAserial.print(PNumber[1]);
@@ -597,8 +604,8 @@ void MakeCall(){                  // I really didn't want to use a loop here. Ju
   ToneReport();                   // but this do... while loop makes variable length dialling much easier.
   CallOn = true;
   byte dd = 0;                    // Dialled Digit index
-  FONAserial.print("ATD");
-  Serial.print("ATD");
+  FONAserial.print(F("ATD"));
+  Serial.print(F("ATD"));
   do {
     FONAserial.print(PNumber[dd]);
     Serial.print(PNumber[dd]);
@@ -615,10 +622,10 @@ void MakeCall(){                  // I really didn't want to use a loop here. Ju
   ClearBufferSilent();
 }
 
-void ToneReport() {               // Ditto for the speaker tones, let's use a conditional loop
+void ToneReport() {                     // Ditto for the speaker tones, a conditional loop is easier here
   byte dd = 0;
   do {
-    FONAserial.print("AT+CPTONE=");     //Play DTMF tone over speaker
+    FONAserial.print(F("AT+CPTONE="));  //Play DTMF tone over speaker
     if (PNumber[dd] != 0)
       FONAserial.println(PNumber[dd]);
     else                                // Send 10 instead of 0 for speaker tones

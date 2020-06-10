@@ -7,25 +7,25 @@ void DisplayContacts(){
       display.fillScreen(GxEPD_WHITE); // set the background to white (fill the buffer with value for white)
       //display.setFont();  //Back to default font - optional comment out these lines since they will replaced by date or CLI from main loop.
       //display.setCursor(2, 185); 
-      //display.print("Missed call:");
+      //display.print(F("Missed call:"));
       //display.setFont(&FreeMonoBold9pt7b);
       //display.setCursor(8, 208); 
-      //display.print("???-????");
+      //display.print(F("???-????"));
       display.setFont(&FreeSans9pt7b);
       display.setCursor(5, 60); 
-      display.print("Wireless");
+      display.print(F("Wireless"));
       display.setFont(&FreeSerifItalic9pt7b);
       display.setCursor(30, 80); 
-      display.print("Electronic");
+      display.print(F("Electronic"));
       display.setFont(&FreeMono9pt7b);
       display.setCursor(10, 100); 
-      display.print("Digital");
+      display.print(F("Digital"));
       display.setFont(&FreeSerif9pt7b);
       display.setCursor(33, 120); 
-      display.print("Portable");
+      display.print(F("Portable"));
       display.setFont(&FreeSans9pt7b);
       display.setCursor(0, 145); 
-      display.print("TeLePhOnE");
+      display.print(F("TeLePhOnE"));
     } while (display.nextPage());
   }
   if (PNumber[0] == 2){  //Contacts ABC
@@ -35,9 +35,9 @@ void DisplayContacts(){
       display.fillScreen(GxEPD_WHITE); // set the background to white (fill the buffer with value for white)
       display.setFont();  //Back to default font
       display.setCursor(15, 45);
-      display.print("CONTACTS A-C:");
+      display.print(F("CONTACTS A-C:"));
       display.setCursor(0, 70);
-      display.print("1: Atreides ");    
+      display.print(F("1: Atreides "));    
     } while (display.nextPage());
   }
 
@@ -48,13 +48,13 @@ void DisplayContacts(){
       display.fillScreen(GxEPD_WHITE); // set the background to white (fill the buffer with value for white)
       display.setFont();  //Back to default font
       display.setCursor(15, 45);
-      display.print("CONTACTS D-F:");
+      display.print(F("CONTACTS D-F:"));
       display.setCursor(0, 70);
-      display.print("1: Dennis");  
+      display.print(F("1: Dennis"));
       display.setCursor(0, 70);
-      display.print("2: Duncan");    
+      display.print(F("2: Duncan"));    
       display.setCursor(0, 80);
-      display.print("3: Frank");        
+      display.print(F("3: Frank"));        
     } while (display.nextPage());
   }
 
@@ -65,11 +65,11 @@ void DisplayContacts(){
       display.fillScreen(GxEPD_WHITE); // set the background to white (fill the buffer with value for white)
       display.setFont();  //Back to default font
       display.setCursor(15, 45);
-      display.print("CONTACTS G-I:");
+      display.print(F("CONTACTS G-I:"));
       display.setCursor(0, 70);
-      display.print("1: Ghanima");  
+      display.print(F("1: Ghanima"));  
       display.setCursor(0, 80);
-      display.print("2: Irulan");      
+      display.print(F("2: Irulan"));      
     } while (display.nextPage());
   }
 
@@ -80,11 +80,11 @@ void DisplayContacts(){
       display.fillScreen(GxEPD_WHITE); // set the background to white (fill the buffer with value for white)
       display.setFont();  //Back to default font
       display.setCursor(15, 45);
-      display.print("CONTACTS J-L:");
+      display.print(F("CONTACTS J-L:"));
       display.setCursor(0, 70);
-      display.print("1: Jessica");
+      display.print(F("1: Jessica"));
       display.setCursor(0, 80);
-      display.print("2: Leto");    
+      display.print(F("2: Leto"));
     } while (display.nextPage());
   }
 
@@ -95,7 +95,7 @@ void DisplayContacts(){
       display.fillScreen(GxEPD_WHITE); // set the background to white (fill the buffer with value for white)
       display.setFont();  //Back to default font
       display.setCursor(15, 45);
-      display.print("CONTACTS M-O:");
+      display.print(F("CONTACTS M-O:"));
     } while (display.nextPage());
   }
 
@@ -106,11 +106,11 @@ void DisplayContacts(){
       display.fillScreen(GxEPD_WHITE); // set the background to white (fill the buffer with value for white)
       display.setFont();  //Back to default font
       display.setCursor(15, 45);
-      display.print("CONTACTS P-S:");
+      display.print(F("CONTACTS P-S:"));
       display.setCursor(0, 70);
-      display.print("1: Paul");  
+      display.print(F("1: Paul"));  
       display.setCursor(0, 80);
-      display.print("2: Stilgar");      
+      display.print(F("2: Stilgar"));      
     } while (display.nextPage());
   }
 
@@ -121,9 +121,9 @@ void DisplayContacts(){
       display.fillScreen(GxEPD_WHITE); // set the background to white (fill the buffer with value for white)
       display.setFont();  //Back to default font
       display.setCursor(15, 45);
-      display.print("CONTACTS T-V:");
+      display.print(F("CONTACTS T-V:"));
       display.setCursor(0, 70);
-      display.print("4: My Voicemail");  
+      display.print(F("4: My Voicemail"));  
     } while (display.nextPage());
   }
 
@@ -134,7 +134,7 @@ void DisplayContacts(){
       display.fillScreen(GxEPD_WHITE); // set the background to white (fill the buffer with value for white)
       display.setFont();  //Back to default font
       display.setCursor(15, 45);
-      display.print("CONTACTS W-Y:");
+      display.print(F("CONTACTS W-Y:"));
     } while (display.nextPage());
   }
 }

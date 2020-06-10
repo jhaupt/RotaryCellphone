@@ -104,7 +104,7 @@ int mode;  //1 = 631, 2 = NP, 3 = Alt. Marks the mode the phone's currently in. 
 unsigned int longTimer = 0;     // loop counter to do something periodically with a long interval (every 10s).
 unsigned int shortTimer = 0;    // loop counter to do someting short (a few ms) but frequently (every second)
 
-byte rtcYear;
+byte rtcYear = 0;
 byte rtcMonth;
 byte rtcDay;
 byte rtcHour;
@@ -112,6 +112,8 @@ byte rtcMin;
 byte dow;                       // Day of the week; 0 = Sunday, 6 = Saturday
 String dowStr = "Invalid";
 String monthStr = "time";
+byte callHour = 0;              // Time of last incoming call, hours
+byte callMin = 0;               // Time of last incoming call, minutes
 const int leadingDay[] = {0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4};  // Array used for day of the week algorithm
 
 //Define general output pins
@@ -179,14 +181,14 @@ void setup(){
 
   buffer.reserve(nChars+1);       // Reserve space for FONA messages, may need increasing for texts but caution with SoftwareSerial buffer limit
   callerID.reserve(16);           // Reserve space for caller ID string (ITU 15 digits max + null), or 'Withheld' etc
-  callerID = "???-????";          // Justine's original caller ID place holder :)
+  callerID = "none";          // Justine's original caller ID place holder, originally "???-????"
   Serial.begin(115200);           // Hardware UART + FTDI easily handles this (despite 3.5% timing error with 8MHz clock)
   FONAserial.begin(9600);         // this can be increased this too, max tbc with logic analyser...
 
   // Check if FONA is ON, turn on if necessary.
   // The FONAwake pin toggles power so let's check if it's already on.
   if (digitalRead(PowerState) == LOW) {
-    Serial.println("FONA is OFF");
+    Serial.println(F("FONA is OFF"));
     digitalWrite(FONAWake, LOW);    //Holding LOW for MIN 64ms wakes FONA  
     delay(128);
     digitalWrite(FONAWake, HIGH);
@@ -204,43 +206,43 @@ void setup(){
     display.drawBitmap(0, 0, logo, 104, 76, GxEPD_BLACK);  // Optional: change 'logo' to 'kitten'
     display.setFont(&FreeSerif9pt7b);
     display.setCursor(2, 96); 
-    display.print("Rotary");
+    display.print(F("Rotary"));
     display.setFont(&FreeMonoBold9pt7b);
     display.setCursor(3, 120); 
-    display.print("Cell");
+    display.print(F("Cell"));
     display.setFont(&FreeSans9pt7b);
     display.setCursor(48, 120); 
-    display.print("Phone");
+    display.print(F("Phone"));
   } while (display.nextPage());
   
   delay(5000);                        // FONA can take up to 5-6s to start, the welcome screen took >1s
   // Initialise the FONA
-  FONAserial.println("AT");           // Helps baud rate auto selection: https://en.wikipedia.org/wiki/Hayes_command_set#Autobaud
+  FONAserial.println(F("AT"));           // Helps baud rate auto selection: https://en.wikipedia.org/wiki/Hayes_command_set#Autobaud
   Serial.println(FONAread(50));       // wait up to 50ms for start of reply then send reply over USB serial
   delay(50);
-  FONAserial.println("AT+IPR=9600");  // Set baud rate on phone
+  FONAserial.println(F("AT+IPR=9600"));  // Set baud rate on phone
   Serial.println(FONAread(50));
   delay(50);
-  FONAserial.println("AT+CVHU=0");    // Sets voice "hang up" control so that "ATH" disconnects voice calls.
+  FONAserial.println(F("AT+CVHU=0"));    // Sets voice "hang up" control so that "ATH" disconnects voice calls.
   Serial.println(FONAread(50));
   delay(50);
-  FONAserial.println("AT+CSDVC=3");   // Set audio output channel. 3 is the speaker.
+  FONAserial.println(F("AT+CSDVC=3"));   // Set audio output channel. 3 is the speaker.
   Serial.println(FONAread(50));
   delay(50);
-  FONAserial.println("AT+CRXGAIN=10000");  // Set Rx Gain, (max ‭value 65,536‬) which affects the speaker volume during calls...
+  FONAserial.println(F("AT+CRXGAIN=10000"));  // Set Rx Gain, (max ‭value 65,536‬) which affects the speaker volume during calls...
   Serial.println(FONAread(50));            // 10000 is a good value for use of the speaker as a handset (if aged under 50)!
   delay(50);
-  FONAserial.println("AT+CLVL=3");    // Set volume (0-8)
+  FONAserial.println(F("AT+CLVL=3"));    // Set volume (0-8)
   Serial.println(FONAread(50));
   delay(50);
-  FONAserial.println("AT+CRSL=8");    // Ringer volume (0-8)
+  FONAserial.println(F("AT+CRSL=8"));    // Ringer volume (0-8)
   Serial.println(FONAread(50));
   delay(50);
-  FONAserial.println("AT+CLIP=1");    // Enable 'Calling line identification presentation' (caller ID messages)
+  FONAserial.println(F("AT+CLIP=1"));    // Enable 'Calling line identification presentation' (caller ID messages)
   Serial.println(FONAread(50));
   delay(50);
   //****  The following AT commands are stored in non-volatile memory. After sending to the FONA once, these lines can be commented out.
-  FONAserial.println("AT+CTZU=1");    // Enable automatic time & time zone update from cell network.
+  FONAserial.println(F("AT+CTZU=1"));    // Enable automatic time & time zone update from cell network.
   Serial.println(FONAread(50));
 
   n = 0;    //Starting phone number digit value is 0
@@ -346,15 +348,15 @@ void loop() {
     }
     //ANSWER INCOMING CALL IF CALLON = FALSE
     else if (CallOn == false){
-      FONAserial.println("ATA");
+      FONAserial.println(F("ATA"));
       //CallOn = true;      // !!!FIX!!!. The problem with turning the CallOn flag ON is that there's no check to see if a call was actually picked up.
     }                       // FIXED! By testing for call begin and end messages every 1s with the queryAlert() function.
     delay(800);             // Don't make this delay too short or we risk answering a call & immediately disconnecting!
     //IF STILL HOLDING THE HOOK BUTTON BY ITSELF, HANGUP CALL REGARDLESS OF CALLON STATE
     if (digitalRead(HookButton) == LOW){ 
-      FONAserial.println("ATH");
+      FONAserial.println(F("ATH"));
       delay(100);
-      FONAserial.println("AT+CHUP");
+      FONAserial.println(F("AT+CHUP"));
       if (CallOn == true){    //If CallOn = true, make it false. This is just for the hook LED.
         CallOn = false;
       }
@@ -386,7 +388,7 @@ void loop() {
       }
       if (PNumber[0] != 99){
         clvl=PNumber[0];
-        FONAserial.print("AT+CLVL=");
+        FONAserial.print(F("AT+CLVL="));
         FONAserial.println(clvl);
         BarGraphSlow(PNumber[0]);
         delay(100);
@@ -422,7 +424,7 @@ void loop() {
       }
       if (PNumber[0] != 99){
         rlvl = PNumber[0];
-        FONAserial.print("AT+CRSL=");
+        FONAserial.print(F("AT+CRSL="));
         FONAserial.println(rlvl);
         BarGraphSlow(PNumber[0]);
         delay(100);
