@@ -109,9 +109,10 @@ byte rtcMonth;
 byte rtcDay;
 byte rtcHour;
 byte rtcMin;
-byte dow;                       // Day of the week; 0 = Sunday, 6 = Saturday
-String dowStr = "Invalid";
-String monthStr = "time";
+byte dow;                             // Day of the week; 0 = Sunday, 6 = Saturday
+String dowStr = "----";               // Max 4 characters
+String monthStr = "---------";        // Max 9 characters
+String dateStr = "-----------------"; // Max 17 characters including spaces
 byte callHour = 0;              // Time of last incoming call, hours
 byte callMin = 0;               // Time of last incoming call, minutes
 const int leadingDay[] = {0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4};  // Array used for day of the week algorithm
@@ -119,16 +120,16 @@ const int leadingDay[] = {0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4};  // Array used fo
 //Define general output pins
 const byte StatusLED = 13;
 const byte HookLED = 49;
-const byte BGLED1 = 7;    //bargraph LED 0 (D15)
-const byte BGLED2 = 6;    //bargraph LED 1 (D14)
-const byte BGLED3 = 16;   //bargraph LED 2 (D13)
-const byte BGLED4 = 17;   //bargraph LED 3 (D12)
-const byte BGLED5 = 14;   //bargraph LED 4 (D11)
-const byte BGLED6 = 15;   //bargraph LED 5 (D10)
-const byte BGLED7 = 42;   //bargraph LED 6 (D9)
-const byte BGLED8 = 43;   //bargraph LED 7 (D8)
-const byte BGLED9 = 47;   //bargraph LED 8 (D7)
-const byte BGLED10 = 48;  //bargraph LED 9 (D6)
+const byte BGLED1 = 7;        //bargraph LED 0 (D15)
+const byte BGLED2 = 6;        //bargraph LED 1 (D14)
+const byte BGLED3 = 16;       //bargraph LED 2 (D13)
+const byte BGLED4 = 17;       //bargraph LED 3 (D12)
+const byte BGLED5 = 14;       //bargraph LED 4 (D11)
+const byte BGLED6 = 15;       //bargraph LED 5 (D10)
+const byte BGLED7 = 42;       //bargraph LED 6 (D9)
+const byte BGLED8 = 43;       //bargraph LED 7 (D8)
+const byte BGLED9 = 47;       //bargraph LED 8 (D7)
+const byte BGLED10 = 48;      //bargraph LED 9 (D6)
 const byte FONAWake = A0;
 const byte eink_ENA = 31;
 
@@ -181,7 +182,7 @@ void setup(){
 
   buffer.reserve(nChars+1);       // Reserve space for FONA messages, may need increasing for texts but caution with SoftwareSerial buffer limit
   callerID.reserve(16);           // Reserve space for caller ID string (ITU 15 digits max + null), or 'Withheld' etc
-  callerID = "none";          // Justine's original caller ID place holder, originally "???-????"
+  callerID = "none";              // Justine's original caller ID place holder, originally "???-????"
   Serial.begin(115200);           // Hardware UART + FTDI easily handles this (despite 3.5% timing error with 8MHz clock)
   FONAserial.begin(9600);         // this can be increased this too, max tbc with logic analyser...
 
@@ -203,22 +204,19 @@ void setup(){
   display.setTextColor(GxEPD_BLACK);
   display.firstPage();              //Display a welcome msg while FONA is starting
   do {
-    display.drawBitmap(0, 0, logo, 104, 76, GxEPD_BLACK);  // Optional: change 'logo' to 'kitten'
+    display.drawBitmap(0, 30, GPO_logo, 104, 76, GxEPD_BLACK);  // Optional: change 'logo' to 'kitten'
     display.setFont(&FreeSerif9pt7b);
-    display.setCursor(2, 96); 
+    display.setCursor(2, 122); 
     display.print(F("Rotary"));
     display.setFont(&FreeMonoBold9pt7b);
-    display.setCursor(3, 120); 
-    display.print(F("Cell"));
-    display.setFont(&FreeSans9pt7b);
-    display.setCursor(48, 120); 
-    display.print(F("Phone"));
+    display.setCursor(3, 144); 
+    display.print(F("CellPhone"));
   } while (display.nextPage());
   
-  delay(5000);                        // FONA can take up to 5-6s to start, the welcome screen took >1s
+  delay(5000);                           // FONA can take up to 5-6s to start, the welcome screen took >1s
   // Initialise the FONA
   FONAserial.println(F("AT"));           // Helps baud rate auto selection: https://en.wikipedia.org/wiki/Hayes_command_set#Autobaud
-  Serial.println(FONAread(50));       // wait up to 50ms for start of reply then send reply over USB serial
+  Serial.println(FONAread(50));          // wait up to 50ms for start of reply then send reply over USB serial
   delay(50);
   FONAserial.println(F("AT+IPR=9600"));  // Set baud rate on phone
   Serial.println(FONAread(50));
@@ -285,15 +283,14 @@ void loop() {
     longTimer = 0;                           // we can do something that takes more than 5ms only if the dial not in use
     //Serial.println(F("Long timer tick"));  // Here we update display with cell network time every 10s
     if (!(StartTimeSinceLastPulse == true || StillOn == true)) {  // If the dial is not in use, do periodic stuf...
+      displayCID();  // Display last caller ID, or 'none', or 'witheld. The digits are small to allow 15 digits as per ITU-T recommendation
+      displayTime(); // Display date & time. For countries with a confused endian format, change the printf variable order in displayTime()
       switch (mode) {
-        case 1:          // Do periodic stuff if in prepend mode
-          displayCID();  // Display last caller ID, or 'none', or 'witheld. The digits are small to allow 15 digits as per ITU-T recommendation
+        case 1:          // Do periodic stuff if in prepend mode          
           break;
-        case 2:          // Do periodic stuff if in no prepend mode
-          displayCID();  // Display last caller ID
+        case 2:          // Do periodic stuff if in no-prepend mode
           break;
         case 3:          // Do periodic stuff if in alt mode
-          displayTime(); // Display date & time. For countries with a confused endian format, change the printf variable order in displayTime()
           break;
         default:         // Not needed but here it is anyway
           break;
