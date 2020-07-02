@@ -88,6 +88,7 @@ byte k = 0;             //For specifying the digit in a phone number
 unsigned long TimeSinceLastPulse = 0;   //used to see if enough of a delay has happened since the last pulse from the rotary dial to consider the sequence complete.
 String buffer;          // String object buffer for incoming messages from FONA
 String callerID;        // String object to store incoming caller ID
+String prevCallerID;
 byte PNumber[30];       // an array to store phone numbers as they're dialed with the rotary dial
 bool StillOn = false;   // a flag to indicate that th
 bool StartTimeSinceLastPulse = false;  //This gets sets to "true" the first time the rotary dial is used.
@@ -100,19 +101,20 @@ int rlvl;        // ring level storage integer
 float BattLevel;
 float SigLevel;
 int pagenum;     //holder for page number
-int mode;  //1 = 631, 2 = NP, 3 = Alt. Marks the mode the phone's currently in. Needed for certain things.
-unsigned int longTimer = 0;     // loop counter to do something periodically with a long interval (every 10s).
-unsigned int shortTimer = 0;    // loop counter to do someting short (a few ms) but frequently (every second)
+int mode;        //1 = 631, 2 = NP, 3 = Alt. Marks the mode the phone's currently in. Needed for certain things.
+unsigned int longTimer = 0;   // loop counter to do something periodically with a long interval (every 10s).
+unsigned int shortTimer = 0;  // loop counter to do someting short (a few ms) but frequently (every second)
 
 byte rtcYear = 0;
 byte rtcMonth;
 byte rtcDay;
 byte rtcHour;
 byte rtcMin;
+byte prevRtcMin;                      // Used to test for next RTC minute
 byte dow;                             // Day of the week; 0 = Sunday, 6 = Saturday
 String dowStr = "----";               // Max 4 characters
 String monthStr = "---------";        // Max 9 characters
-String dateStr = "-----------------"; // Max 17 characters including spaces
+String dateStr = "-----------------"; // Max 17 characters. Must initialise string otherwise the string addition operator might not run as expected
 byte callHour = 0;              // Time of last incoming call, hours
 byte callMin = 0;               // Time of last incoming call, minutes
 const int leadingDay[] = {0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4};  // Array used for day of the week algorithm
@@ -182,7 +184,9 @@ void setup(){
 
   buffer.reserve(nChars+1);       // Reserve space for FONA messages, may need increasing for texts but caution with SoftwareSerial buffer limit
   callerID.reserve(16);           // Reserve space for caller ID string (ITU 15 digits max + null), or 'Withheld' etc
+  prevCallerID.reserve(16);       // Reserve space for to check whether Caller ID has been updated
   callerID = "none";              // Justine's original caller ID place holder, originally "???-????"
+  prevCallerID = "";              // Null string
   Serial.begin(115200);           // Hardware UART + FTDI easily handles this (despite 3.5% timing error with 8MHz clock)
   FONAserial.begin(9600);         // this can be increased this too, max tbc with logic analyser...
 
@@ -283,9 +287,9 @@ void loop() {
     longTimer = 0;                           // we can do something that takes more than 5ms only if the dial not in use
     //Serial.println(F("Long timer tick"));  // Here we update display with cell network time every 10s
     if (!(StartTimeSinceLastPulse == true || StillOn == true)) {  // If the dial is not in use, do periodic stuf...
-      displayCID();  // Display last caller ID, or 'none', or 'witheld. The digits are small to allow 15 digits as per ITU-T recommendation
-      displayTime(); // Display date & time. For countries with a confused endian format, change the printf variable order in displayTime()
-      switch (mode) {
+      displayCID();      // Display last caller ID, or 'none', or 'witheld. The digits are small to allow 15 digits as per ITU-T recommendation
+      displayTime();     // Display date & time. For countries with a confused endian format, change the printf variable order in displayTime()
+      switch (mode) {    // OK, we're not doing mode specific periodic stuff now... but we might down the road
         case 1:          // Do periodic stuff if in prepend mode          
           break;
         case 2:          // Do periodic stuff if in no-prepend mode

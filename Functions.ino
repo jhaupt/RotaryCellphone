@@ -394,43 +394,51 @@ void checkAlerts() {                                // Check for unsolicited FON
   }
 }
 
-void displayCID() {
-  display.setPartialWindow(0, 185, 104, 27);  // Partial update bottom 27 rows of pixels
-  display.firstPage();                        //this function is called before every time ePaper is updated.
-  do {
-    display.fillScreen(GxEPD_WHITE);          // set the background to white (fill the buffer with value for white)
-    display.setFont();                        //Back to default font
-    display.setCursor(2, 186);
-    display.print(F("Caller"));
-    if (callerID != "none") {
-      display.printf(" at %02d:%02d", callHour, callMin);
-    }
-    display.setCursor(2, 201); 
-    display.print(callerID);
-  } while (display.nextPage());
-  display.setFullWindow();                    // back to full window
-  display.powerOff();
+void displayCID() {                             // Use e-paper partial update to display caller ID
+  if (callerID != prevCallerID) {               // Only update display if there is a new Caller ID
+    Serial.println(F("Caller ID update"));
+    display.setPartialWindow(0, 185, 104, 27);  // Partial update bottom 27 rows of pixels
+    display.firstPage();                        // this function is called before every time ePaper is updated.
+    do {
+      display.fillScreen(GxEPD_WHITE);          // set the background to white (fill the buffer with value for white)
+      display.setFont();                        // Back to default font
+      display.setCursor(2, 186);
+      display.print(F("Caller"));
+      if (callerID != "none") {
+        display.printf(" at %02d:%02d", callHour, callMin);
+      }
+      display.setCursor(2, 201); 
+      display.print(callerID);
+    } while (display.nextPage());
+    display.setFullWindow();                   // back to full window
+    display.powerOff();
+    prevCallerID = callerID;
+  }
 }
 
-void displayTime() {                          //  Use e-paper partial update to display date/time
-  getTime();
-  Serial.print(F("RTC: "));                   // Send date/time over serial USB for debugging
-  Serial.printf("%d/%d/%d  %02d:%02d\n", rtcDay, rtcMonth, rtcYear+2000, rtcHour, rtcMin);
-  display.setPartialWindow(0, 0, 104, 27);    // Partial update top 27 rows of pixels
-  display.firstPage();  //this function is called before every time ePaper is updated.
-  do {
-    display.fillScreen(GxEPD_WHITE);
-    display.setFont();                        //Back to default font
-    dateStr = dowStr + ' ' + rtcDay + ' ' + monthStr;
-    int dateStartX = int((104 - (dateStr.length() * 6)) / 2); // Centre the date horizontally
-    display.setCursor(dateStartX, 0);
-    display.print(dateStr);
-    display.setFont(&FreeMonoBold9pt7b);
-    display.setCursor(24, 23);
-    display.printf("%02d:%02d", rtcHour, rtcMin);
-  } while (display.nextPage());
-  display.setFullWindow();        // back to full window
-  display.powerOff();
+void displayTime() {                            // Use e-paper partial update to display date/time
+  getTime();                                    // This updates the RTC time/date global variables
+  if (rtcMin != prevRtcMin) {                   // Only update display if minute has changed
+    Serial.println(F("Time update"));
+    //Serial.print(F("RTC: "));                 // For debugging only: send date/time over serial USB
+    //Serial.printf("%d/%d/%d  %02d:%02d\n", rtcDay, rtcMonth, rtcYear+2000, rtcHour, rtcMin);
+    display.setPartialWindow(0, 0, 104, 27);    // Partial update top 27 rows of pixels
+    display.firstPage();  //this function is called before every time ePaper is updated.
+    do {
+      display.fillScreen(GxEPD_WHITE);
+      display.setFont();                        //Back to default font
+      dateStr = dowStr + ' ' + rtcDay + ' ' + monthStr;
+      int dateStartX = int((104 - (dateStr.length() * 6)) / 2); // Centre the date horizontally
+      display.setCursor(dateStartX, 0);
+      display.print(dateStr);
+      display.setFont(&FreeMonoBold9pt7b);
+      display.setCursor(24, 23);
+      display.printf("%02d:%02d", rtcHour, rtcMin);
+    } while (display.nextPage());
+    display.setFullWindow();                   // back to full window
+    display.powerOff();
+    prevRtcMin = rtcMin;
+  }
 }
 
 void getTime() {
