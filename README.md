@@ -2,7 +2,7 @@
 
 ![Two finished RotaryCellphones](images/two_phones.jpg "Two finished RotaryCellphones")
 
-The motive for this fork is to develop the original firmware (April 2020) to a reliable functional base. It is not the intention to add a host of new functions (other than time display), localisation or customisation but simply to complete the original framework. There is no intention to make a derivitive.
+The motive for this fork is to develop the original firmware (April 2020) to a good functional base. It is not the intention to add a host of new functions (other than time display), localisation or customisation but simply to complete the original framework. There is no intention to make a derivitive.
 
 I don't intend to add much more otherwise I would buy a smartphone! I welcome reports of bugs/issues then I'll likely archive this after a few months. There are too many possibilities for localisation and customisation that I don't want to get tied up with this. It's a unique design with great potential to make it personal.
 

@@ -2,26 +2,33 @@
 void DisplayContacts(){
   if (PNumber[0] == 1){
     pagenum = 1;
-    display.firstPage();  //this function is called before every time ePaper is updated. Has nothing to do with what I call page numbers in this section of the program.
-    do {
-      display.fillScreen(GxEPD_WHITE); // set the background to white (fill the buffer with value for white)
+    display.firstPage();                // This function is called before every time ePaper is updated has nothing to do...
+    do {                                // with what I call page numbers in this section of the program.
+      display.fillScreen(GxEPD_WHITE);  // Set the background to white (fill the buffer with value for white)
       display.setFont(&FreeSans9pt7b);
-      display.setCursor(5, 60); 
+      display.setCursor(5, 55); 
       display.print(F("Wireless"));
       display.setFont(&FreeSerifItalic9pt7b);
-      display.setCursor(30, 80); 
+      display.setCursor(30, 75); 
       display.print(F("Electronic"));
       display.setFont(&FreeMono9pt7b);
-      display.setCursor(10, 100); 
+      display.setCursor(10, 95); 
       display.print(F("Digital"));
       display.setFont(&FreeSerif9pt7b);
-      display.setCursor(33, 120); 
+      display.setCursor(33, 117); 
       display.print(F("Portable"));
       display.setFont(&FreeSans9pt7b);
-      display.setCursor(0, 145); 
+      display.setCursor(0, 140); 
       display.print(F("TeLePhOnE"));
+      display.setFont();               // Reset to standard built-in (tiny) font
+      display.setCursor(2, 155);
+      display.print(F("Dial first letter"));
+      display.setCursor(2, 165);
+      display.print(F("of name to call"));
     } while (display.nextPage());
+    forceUpdate();                     // Update Time & Caller ID on next main loop pass
   }
+  
   if (PNumber[0] == 2){  //Contacts ABC
     pagenum =2;
     display.firstPage();  //this function is called before every time ePaper is updated. Has nothing to do with what I call page numbers in this section of the program.

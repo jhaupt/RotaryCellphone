@@ -186,7 +186,6 @@ void setup(){
   callerID.reserve(16);           // Reserve space for caller ID string (ITU 15 digits max + null), or 'Withheld' etc
   prevCallerID.reserve(16);       // Reserve space for to check whether Caller ID has been updated
   callerID = "none";              // Justine's original caller ID place holder, originally "???-????"
-  prevCallerID = "";              // Null string
   Serial.begin(115200);           // Hardware UART + FTDI easily handles this (despite 3.5% timing error with 8MHz clock)
   FONAserial.begin(9600);         // this can be increased this too, max tbc with logic analyser...
 
@@ -203,19 +202,8 @@ void setup(){
     Serial.println(F("FONA already ON"));
   }
 
-  display.init(115200);             // Initialise and display a welcome screen
-  display.setRotation(0);
-  display.setTextColor(GxEPD_BLACK);
-  display.firstPage();              //Display a welcome msg while FONA is starting
-  do {
-    display.drawBitmap(0, 30, sleepy_moon, 104, 76, GxEPD_BLACK);  // Set the array name to the preferred bitmap image
-    display.setFont(&FreeSerif9pt7b);
-    display.setCursor(2, 122); 
-    display.print(F("Rotary"));
-    display.setFont(&FreeMonoBold9pt7b);
-    display.setCursor(3, 144); 
-    display.print(F("CellPhone"));
-  } while (display.nextPage());
+  display.init(115200);                  // Initialise and display a welcome screen
+  welcomeDisplay();
   
   delay(5000);                           // FONA can take up to 5-6s to start, the welcome screen took >1s
   // Initialise the FONA
@@ -328,11 +316,14 @@ void loop() {
     delay(200);
     //IF THE CLEAR BUTTON IS STILL DEPRESSED, CLEAR THE BUFFER
     if (digitalRead(ClearButton) == LOW){ 
-      ClearBuffer();   //Clear whatever number has been entered so far
+      ClearBuffer();                         //Clear whatever number has been entered so far
       digitalWrite(StatusLED, HIGH);
-      delay(100);
+      delay(500);
       digitalWrite(StatusLED, LOW);
       delay(500);
+      if (digitalRead(ClearButton) == LOW) { // If button still held, reload the welcome display
+        welcomeDisplay();
+      }
     }
   }
 

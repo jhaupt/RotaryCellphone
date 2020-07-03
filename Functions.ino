@@ -1,25 +1,50 @@
-void RotaryIn(){   //Listen for pulses from the rotary dial. NO LOOP here. This runs once per iteration of "void loop", so the timing of other things in the main loop will affect this.
-  if (digitalRead(RotaryPulseIn) == HIGH){    //If the pin connected to the rotary dial goes high...
+void welcomeDisplay() {                                            // Put you startup/welcome/reset screen here
+  display.setRotation(0);                                          // add a help msg or personal message
+  display.setTextColor(GxEPD_BLACK);
+  display.firstPage();                                             // Display a welcome graphic
+  do {
+    display.drawBitmap(0, 30, sleepy_moon, 104, 76, GxEPD_BLACK);  // Set the array name to the preferred bitmap image
+    display.setFont(&FreeSerif9pt7b);
+    display.setCursor(2, 122); 
+    display.print(F("Rotary"));
+    display.setFont(&FreeMonoBold9pt7b);
+    display.setCursor(3, 144); 
+    display.print(F("CellPhone"));
+    display.setFont();                                             // Back to standard (tiny) font
+    display.setCursor(2, 155);
+    display.print(F("made in Cambridge"));                         // Personalise here
+  } while (display.nextPage());
+  forceUpdate();                                                   // Update Time & Caller ID on next main loop pass
+}
+
+void forceUpdate() {                                               // Force time & caller ID update on next main loop pass
+  longTimer = 99;
+  prevRtcMin = 99;
+  prevCallerID = "";                                               // Null string
+}
+
+void RotaryIn(){  //Listen for pulses from the rotary dial. NO LOOP here. This runs once per iteration of "void loop", so the timing of other things in the main loop will affect this.
+  if (digitalRead(RotaryPulseIn) == HIGH){  //If the pin connected to the rotary dial goes high...
     StartTimeSinceLastPulse = true;
-    if (StillOn == false){  // ...and if we're not still in the same (continuous) pulse from the previous iteration of void loop()...
+    if (StillOn == false){                  // ...and if we're not still in the same (continuous) pulse from the previous iteration of void loop()...
       BarGraphFast(n+1);
-      n++;                  //...Increment the counter...
+      n++;                                  //...Increment the counter...
       if (n == 10){
         n = 0;
       }
       delay(10);
     }
-    StillOn = true;         // ...and turn on the flag that says a pulse just happened.
+    StillOn = true;                         // ...and turn on the flag that says a pulse just happened.
   }
 
-  if (StillOn == true){     //If a pulse just happened...
-    if ((digitalRead(RotaryPulseIn) == LOW)){   //See if the pin connected to the rotary dial goes low...
-      StillOn = false;      //...if it did, we turn off the "StillOn" flag.
+  if (StillOn == true){                        //If a pulse just happened...
+    if ((digitalRead(RotaryPulseIn) == LOW)){  //See if the pin connected to the rotary dial goes low...
+      StillOn = false;                         //...if it did, we turn off the "StillOn" flag.
       digitalWrite(StatusLED, HIGH);
       delay(20);
       digitalWrite(StatusLED, LOW);
       delay(40);
-      TimeSinceLastPulse = 0;     //Reset the time since last pulse (not really time... rather a counter for "void loop").
+      TimeSinceLastPulse = 0;                  //Reset the time since last pulse (not really time... rather a counter for "void loop").
     }
   }
 
