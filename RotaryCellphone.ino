@@ -1,4 +1,4 @@
-/***************************************************
+ /***************************************************
 * MIT License
 *
 * Copyright (c) 2020 Justine Haupt et al
@@ -208,7 +208,7 @@ void setup(){
   display.setTextColor(GxEPD_BLACK);
   display.firstPage();              //Display a welcome msg while FONA is starting
   do {
-    display.drawBitmap(0, 30, GPO_logo, 104, 76, GxEPD_BLACK);  // Optional: change 'logo' to 'kitten'
+    display.drawBitmap(0, 30, sleepy_moon, 104, 76, GxEPD_BLACK);  // Set the array name to the preferred bitmap image
     display.setFont(&FreeSerif9pt7b);
     display.setCursor(2, 122); 
     display.print(F("Rotary"));
