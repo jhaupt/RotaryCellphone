@@ -285,8 +285,8 @@ void loop() {
         if (lowVccCount > 5) {                           // If so, powerdown (to a few 100 microAmps) display powerdown time & blink status LED every 4s.
           Serial.printf(F("\nLOW BATTERY POWERDOWN\n")); // Note readVcc() is much faster (2.1ms) than using the FONA battery 
           shutdownPhone();                               // status command & therefore very unlikely to affect loop timing of the rotary dial.
-        }
-      }
+        }                                                // Note: readVcc() returns a value inversely proportional to Vcc (the '>' is correct)
+      }                                                  // Vcc (mV) = 1125300 / readVcc()
       else
         lowVccCount = 0;
     }
