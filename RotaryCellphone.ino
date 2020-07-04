@@ -66,6 +66,7 @@ Requires hardware mod to FONA Tx connection, see forum "Firmware stuff" thread f
 ****************************************************/
 
 #include <SoftwareSerial.h>
+#include <Adafruit_SleepyDog.h>
 #include <GxEPD2_BW.h>
 #include <Fonts/FreeMonoBold9pt7b.h>
 #include <Fonts/FreeMono9pt7b.h>
@@ -96,12 +97,13 @@ bool CallOn = false;    //Set to "true" when a call is in progress, to determine
 bool newrotaryinput = false;
 float fholder1;
 int iholder;
-int clvl;        // call level storage integer
-int rlvl;        // ring level storage integer
+int clvl;               // call level storage integer
+int rlvl;               // ring level storage integer
 float BattLevel;
+byte lowVccCount = 0;   // Count how many consective times a near exhausted battery condition has been read
 float SigLevel;
-int pagenum;     //holder for page number
-int mode;        //1 = 631, 2 = NP, 3 = Alt. Marks the mode the phone's currently in. Needed for certain things.
+int pagenum;            // holder for page number
+int mode;               // 1 = 631, 2 = NP, 3 = Alt. Marks the mode the phone's currently in. Needed for certain things.
 unsigned int longTimer = 0;   // loop counter to do something periodically with a long interval (every 10s).
 unsigned int shortTimer = 0;  // loop counter to do someting short (a few ms) but frequently (every second)
 
@@ -192,14 +194,14 @@ void setup(){
   // Check if FONA is ON, turn on if necessary.
   // The FONAwake pin toggles power so let's check if it's already on.
   if (digitalRead(PowerState) == LOW) {
-    Serial.println(F("FONA is OFF"));
+    Serial.printf(F("\nFONA is OFF\n"));
     digitalWrite(FONAWake, LOW);    //Holding LOW for MIN 64ms wakes FONA  
     delay(128);
     digitalWrite(FONAWake, HIGH);
     while (PowerState == LOW) {}    //wait for FONA to power up, approx 5s
-    Serial.println(F("FONA is ON"));
+    Serial.printf(F("\nFONA is ON\n\n"));
   } else {
-    Serial.println(F("FONA already ON"));
+    Serial.printf(F("\nFONA is already ON\n\n"));
   }
 
   display.init(115200);                  // Initialise and display a welcome screen
@@ -242,7 +244,7 @@ void setup(){
   delay(500);
   digitalWrite(StatusLED, LOW);
   ClearBuffer();
-  Serial.println(F("SETUP COMPLETE"));
+  Serial.printf(F("SETUP COMPLETE\n\n"));
 }
 
 
@@ -263,30 +265,30 @@ void loop() {
     mode = 3;
 
   // ***************************** Periodic stuff *****************************
-  if (shortTimer > 9430) {                   // Do something quick every 1s (<5ms so as to not affect dial timing)
-    shortTimer = 0;                          // Hint: this would also be a good place to insert call state parsing
-    //Serial.println(F("Short timer tick")); // Optional for debugging
-    checkAlerts();                           // Check for an alert from the FONA, e.g. incoming call? Caller ID?
+  if (shortTimer > 9430) {                               // Do something quick every 1s (<5ms so as to not affect dial timing)
+    shortTimer = 0;                                      // Hint: this would also be a good place to insert call state parsing
+    //Serial.println(F("Short timer tick"));             // Optional for debugging
+    checkAlerts();                                       // Check for an alert from the FONA, e.g. incoming call? Caller ID?
     longTimer++;
   }
   shortTimer++;
   
-  if (longTimer > 10) {                      // Do something here periodically approx ever 10s...
-    longTimer = 0;                           // we can do something that takes more than 5ms only if the dial not in use
-    //Serial.println(F("Long timer tick"));  // Here we update display with cell network time every 10s
-    if (!(StartTimeSinceLastPulse == true || StillOn == true)) {  // If the dial is not in use, do periodic stuf...
-      displayCID();      // Display last caller ID, or 'none', or 'witheld. The digits are small to allow 15 digits as per ITU-T recommendation
-      displayTime();     // Display date & time. For countries with a confused endian format, change the printf variable order in displayTime()
-      switch (mode) {    // OK, we're not doing mode specific periodic stuff now... but we might down the road
-        case 1:          // Do periodic stuff if in prepend mode          
-          break;
-        case 2:          // Do periodic stuff if in no-prepend mode
-          break;
-        case 3:          // Do periodic stuff if in alt mode
-          break;
-        default:         // Not needed but here it is anyway
-          break;
+  if (longTimer > 10) {                                           // Do something here periodically approx ever 10s...
+    longTimer = 0;                                                // we can do something that takes more than 5ms only if the dial not in use.
+    //Serial.println(F("Long timer tick"));                       // Here we update display with cell network time every 10s.
+    if (!(StartTimeSinceLastPulse == true || StillOn == true)) {  // If the dial is not in use, do periodic stuff:
+      displayCID();                                               // Display last caller ID, or 'none', or 'witheld. Tiny font to allow 16 digits.
+      displayTime();                                              // Display date & time if the minute has changed.
+      if (readVcc() > 341) {                             // *** GRACEFUL POWERDOWN when battery is almost exhausted ***
+        lowVccCount++;                                   // Check whether battery voltage has consistantly been very low (< 3.3V). 
+        Serial.printf("\nLOW BATTERY WARNING %d\n", lowVccCount);
+        if (lowVccCount > 5) {                           // If so, powerdown (to a few 100 microAmps) display powerdown time & blink status LED every 4s.
+          Serial.printf(F("\nLOW BATTERY POWERDOWN\n")); // Note readVcc() is much faster (2.1ms) than using the FONA battery 
+          shutdownPhone();                               // status command & therefore very unlikely to affect loop timing of the rotary dial.
+        }
       }
+      else
+        lowVccCount = 0;
     }
   }
   // ***************************** End periodic stuff *****************************

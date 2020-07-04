@@ -40,6 +40,5 @@ Changed name of *main.ino* to *RotaryCellphone.ino*. This removes the requiremen
 - Parse and display incoming call ID - *done*
 - Get NP mode to dial variable length numbers, fix no tone for dialled 0 - *done*
 - Query call state in the 1 second loop to detect hook status - *done*
-- Send the ATmega to sleep occasionally (save 16mA) to increase battery life... *maybe*
 
 It might be possible to use a third party phone module library, some have been considered. TinyGSM is compatible with the SIM5320 but currently not for voice - keep an eye on TinyGSM developments. The Adafruit FONA library requires the RI (ring indicator) wired to a pin using a specific interupt (another hardware mod would be required).

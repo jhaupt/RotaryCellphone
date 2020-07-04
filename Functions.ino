@@ -554,7 +554,7 @@ void getTime() {
   }
 }
 
-void BatteryLevel() {
+void BatteryLevel() {                       // Display bargraph of battery level
   while (digitalRead(BatteryButton) == LOW) {  // Loop for as long as the battery level button is depressed.
     byte tries = 0;
     bool validMsg = false;
@@ -666,4 +666,47 @@ void ToneReport() {                     // Ditto for the speaker tones, a condit
     BarGraphMed(PNumber[dd]);
     dd++;
   } while (PNumber[dd] != 99 && dd < 16);
+}
+
+long readVcc() {  // Read 1.1V reference against AVcc
+  // set the reference to Vcc and the measurement to the internal 1.1V reference.
+  // Code from: https://www.instructables.com/id/Secret-Arduino-Voltmeter/
+  // This is not as accurate as getting battery state from the FONA but it's must faster (2.1ms)
+  ADMUX = _BV(REFS0) | _BV(MUX4) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1); 
+  delay(2); // Wait for Vref to settle
+  ADCSRA |= _BV(ADSC); // Start conversion
+  while (bit_is_set(ADCSRA,ADSC)); // measuring
+  uint8_t low  = ADCL; // must read ADCL first - it then locks ADCH  
+  uint8_t high = ADCH; // unlocks both
+  long result = (high<<8) | low;
+  // Battery voltage (mV) = 1.1*1023*1000/result = 1125300/result
+  // We need to know when Vcc < 3.3V i.e. when result > 331 (Vcc varies as inverse of result)
+  // Li-Po batteries must never be discharged below 3.0V & it's not good to rely on the built
+  // in battery protection circuit - this can be a very low value.
+  return result;
+}
+
+void shutdownPhone () {                       // Powerdown gracefully and display the shutdown time
+  FONAserial.println(F("AT+CPOF"));           // Poweroff the FONA
+  display.setPartialWindow(0, 0, 104, 27);    // Partial update top 27 rows of pixels
+  display.firstPage();                        // this function is called before every time ePaper is updated.
+  do {
+    display.fillScreen(GxEPD_WHITE);          // set the background to white (fill the buffer with value for white)
+    display.setFont();                        // Back to default font
+    display.setCursor(0, 0);
+    display.print(F("Phone shutdown"));
+    display.setCursor(0, 9);
+    display.print(F("due to low"));
+    display.setCursor(0, 18);
+    display.printf("battery at %02d:%02d", rtcHour, rtcMin);
+  } while (display.nextPage());
+  display.powerOff();
+  Serial.printf(F("\nstatus LED blinking\n"));
+  delay(10);                                  // Give the Serial time to send (watchdog sleep messes with USB serial).
+  while (true) {                              // Very low power blink (approx 200uA average).
+    Watchdog.sleep(4000);                     // FOREVER (until the battery internal protection disconnects all power).
+    digitalWrite(StatusLED, HIGH);
+    Watchdog.sleep(10);
+    digitalWrite(StatusLED, LOW);
+  }
 }
