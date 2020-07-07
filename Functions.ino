@@ -28,8 +28,8 @@ void RotaryIn(){  //Listen for pulses from the rotary dial. NO LOOP here. This r
     StartTimeSinceLastPulse = true;
     if (StillOn == false){                  // ...and if we're not still in the same (continuous) pulse from the previous iteration of void loop()...
       BarGraphFast(n+1);
-      n++;                                  //...Increment the counter...
-      if (n == 10){
+      n++;                                  // ...Increment the counter...
+      if (n == 10){                         // 10 dial pules for 0
         n = 0;
       }
       delay(10);
@@ -52,18 +52,21 @@ void RotaryIn(){  //Listen for pulses from the rotary dial. NO LOOP here. This r
     TimeSinceLastPulse++;
   }
 
-  if (TimeSinceLastPulse == 800){    // If standard inter-digit pause (800ms) has elapsed...
-    PNumber[k] = n;                  // write the current value of n to the current position (k) in the phone number (PNumber)
-    k++;                             // increment to the next position of the phone number.
+  if (TimeSinceLastPulse == 4715){      // Inter-digit pause. Has 500ms elapsed? 800ms is the standard pause.
+    PNumber[k] = n;                     // write the current value of n to the current position (k) in the phone number (PNumber)
+    k++;                                // increment to the next position of the phone number.
     FONAserial.print(F("AT+CPTONE="));  // Play DTMF tone over speaker
-    if (n != 0)                      // Oh no! We have to convert 0 -> 10 for speaker tones
-      FONAserial.println(n);
-    else                             // Send 10 instead of 0
-      FONAserial.println(10);        // otherwise you get a missing tone when dialling 0.
+    if (n == 0)                         // Note sending 0 stops the sound tone
+      FONAserial.println(10);
+    else                                // Send 10 instead of 0 for speaker tones
+      FONAserial.println(n);            // otherwise you get a missing tone for 0
     delay(20);
-    FONAserial.print(F("AT+VTS="));     //Send DTMF tone over network (for menu entries, etc).
-    FONAserial.println(n);
-    Serial.println(n);
+    if (CallOn == true) {               // If we're in a call:
+      FONAserial.print(F("AT+VTS="));   // Send DTMF tone over network (for menu entries, etc).
+      FONAserial.println(n);            // (returns an error if not in a call)
+      Serial.println(n);
+      delay(20);
+    }
     newrotaryinput = true;
     n = 0;  //reset n
   }
@@ -386,7 +389,11 @@ void BarGraphWipeDown(){
 }
 
 void checkAlerts() {                                // Check for unsolicited FONA message; incoming call? Caller ID?
-  buffer = FONAread(0);                             // get any FONA message in the receive buffer, no waiting
+  buffer = FONAread(0);                             // get any FONA message in the receive buffer, no waiting.
+  if (buffer.indexOf("RING") > -1) {                // Is the FONA in ringing state?
+    ringTimer = 2;                                  // Alert for period (seconds)
+    Serial.println(F("RING"));
+  }
   if (buffer.indexOf("BEGIN") > -1) {               // Did the FONA just receive a call?
     CallOn = true;                                  // We're probably in a call, set the CallOn flag.
     Serial.println(F("INCOMING CALL"));
@@ -435,8 +442,8 @@ void displayCID() {                             // Use e-paper partial update to
       display.setCursor(2, 201); 
       display.print(callerID);
     } while (display.nextPage());
-    display.setFullWindow();                   // back to full window
-    display.powerOff();
+    display.setFullWindow();                   // Back to full window
+    display.powerOff();                        // Display power off rquired for partial updates
     prevCallerID = callerID;
   }
 }
@@ -460,8 +467,8 @@ void displayTime() {                            // Use e-paper partial update to
       display.setCursor(24, 23);
       display.printf("%02d:%02d", rtcHour, rtcMin);
     } while (display.nextPage());
-    display.setFullWindow();                   // back to full window
-    display.powerOff();
+    display.setFullWindow();                   // Back to full window
+    display.powerOff();                        // Display power off rquired for partial updates
     prevRtcMin = rtcMin;
   }
 }
@@ -607,24 +614,15 @@ void SignalStrength(){
 void MakeCall631(){
   ToneReport();
   FONAserial.print(F("ATD631"));
-  Serial.print(F("ATD631"));
   FONAserial.print(PNumber[0]);
-  Serial.print(PNumber[0]);
   FONAserial.print(PNumber[1]);
-  Serial.print(PNumber[1]);
   FONAserial.print(PNumber[2]);
-  Serial.print(PNumber[2]);
   FONAserial.print(PNumber[3]);
-  Serial.print(PNumber[3]);
   FONAserial.print(PNumber[4]);
-  Serial.print(PNumber[4]);
   FONAserial.print(PNumber[5]);
-  Serial.print(PNumber[5]);
   FONAserial.print(PNumber[6]);
-  Serial.print(PNumber[6]);
   FONAread(13);                   // Clear the buffer (it will have overflowed due to echoing tone commands)
-  FONAserial.println(";");
-  Serial.print(";");
+  FONAserial.println(";");        // Print number over serial USB for debuging.
   Serial.println(FONAread(13));
   digitalWrite(StatusLED, HIGH);
   delay(500);
@@ -634,19 +632,16 @@ void MakeCall631(){
 }
 
 void MakeCall(){                  // I really didn't want to use a loop here. Justine's original algorithm is so easy to follow
-  ToneReport();                   // but this do... while loop makes variable length dialling much easier.
+  ToneReport();                   // but this do...while loop makes variable length dialling much easier.
   CallOn = true;
   byte dd = 0;                    // Dialled Digit index
   FONAserial.print(F("ATD"));
-  Serial.print(F("ATD"));
   do {
     FONAserial.print(PNumber[dd]);
-    Serial.print(PNumber[dd]);
     dd++;
   } while (PNumber[dd] != 99 && dd < 16);
   FONAread(0);                   // Clear the buffer (it will have overflowed due to echoing tone commands)
   FONAserial.println(";");
-  Serial.println(";");
   Serial.println(FONAread(13));
   digitalWrite(StatusLED, HIGH);
   delay(500);
@@ -680,7 +675,7 @@ long readVcc() {  // Read 1.1V reference against AVcc
   uint8_t high = ADCH; // unlocks both
   long result = (high<<8) | low;
   // Battery voltage (mV) = 1.1*1023*1000/result = 1125300/result
-  // We need to know when Vcc < 3.3V i.e. when result > 331 (Vcc varies as inverse of result)
+  // We need to know when Vcc < 3.25V i.e. when result > 346 (Vcc varies as inverse of result)
   // Li-Po batteries must never be discharged below 3.0V & it's not good to rely on the built
   // in battery protection circuit - this can be a very low value.
   return result;
@@ -700,13 +695,13 @@ void shutdownPhone () {                       // Powerdown gracefully and displa
     display.setCursor(0, 18);
     display.printf("battery at %02d:%02d", rtcHour, rtcMin);
   } while (display.nextPage());
-  display.powerOff();
+  display.powerOff();                         // Display power off rquired for partial updates
   Serial.printf(F("\nstatus LED blinking\n"));
   delay(10);                                  // Give the Serial time to send (watchdog sleep messes with USB serial).
   while (true) {                              // Very low power blink (approx 200uA average).
     Watchdog.sleep(4000);                     // FOREVER (until the battery internal protection disconnects all power).
-    digitalWrite(StatusLED, HIGH);
+    digitalWrite(HookLED, HIGH);
     Watchdog.sleep(10);
-    digitalWrite(StatusLED, LOW);
+    digitalWrite(HookLED, LOW);
   }
 }

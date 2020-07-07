@@ -6,9 +6,7 @@ The motive for this fork is to develop the original firmware (April 2020) to a g
 
 I don't intend to add much more otherwise I would buy a smartphone! I welcome reports of bugs/issues then I'll likely archive this after a few months. There are too many possibilities for localisation and customisation that I don't want to get tied up with this. It's a unique design with great potential to make it personal.
 
-It's been fun building this in lockdown!
-
-Thanks Justine.
+**Important:** comment out `#define HAS_VIBRATE` depending on board version. If the board has space for a vibration motor, this should be left defined whether or not a motor is fitted. This is due to differences in connections to the mode switch between board versions.
 
 ## Issues & Troubleshooting
 
@@ -34,11 +32,12 @@ Changed name of *main.ino* to *RotaryCellphone.ino*. This removes the requiremen
 
 **This fork will require the FONA Tx hardware re-wire mod.**
 
-- Reliably decode FONA messages by parsing AT command responses - *done*
-- Fix Signal strength and battery charge display - *done*
-- Display time from cell network - *done*
-- Parse and display incoming call ID - *done*
-- Get NP mode to dial variable length numbers, fix no tone for dialled 0 - *done*
-- Query call state in the 1 second loop to detect hook status - *done*
+- Reliably decode FONA messages by parsing AT command responses
+- Fix Signal strength and battery charge display
+- Display time from cell network
+- Parse and display incoming call ID
+- Get NP mode to dial variable length numbers, fix no tone for dialled
+- Query call state in the 1 second loop to detect hook status
+- Vibration motor works (if installed) when ring level set to zero
 
 It might be possible to use a third party phone module library, some have been considered. TinyGSM is compatible with the SIM5320 but currently not for voice - keep an eye on TinyGSM developments. The Adafruit FONA library requires the RI (ring indicator) wired to a pin using a specific interupt (another hardware mod would be required).

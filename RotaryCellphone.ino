@@ -76,6 +76,9 @@ Requires hardware mod to FONA Tx connection, see forum "Firmware stuff" thread f
 #include <Fonts/FreeSansOblique9pt7b.h>
 #include "bitmaps.h"
 
+// IMPORTANT: comment out next line if board does not have space for a vibration motor
+#define HAS_VIBRATE
+
 //For Adafruit e-ink display:
 #define ENABLE_GxEPD2_GFX 0 
 #define MAX_HEIGHT(EPD) (EPD::HEIGHT <= 800 / (EPD::WIDTH / 8) ? EPD::HEIGHT : 800 / (EPD::WIDTH / 8))
@@ -97,8 +100,8 @@ bool CallOn = false;    //Set to "true" when a call is in progress, to determine
 bool newrotaryinput = false;
 float fholder1;
 int iholder;
-int clvl;               // call level storage integer
-int rlvl;               // ring level storage integer
+int clvl = 2;           // call level storage integer, 2 is the factory default, valid levels are 0-8
+int rlvl = 2;           // ring level storage integer, 2 is the factory default, valid levels are 0-8
 float BattLevel;
 byte lowVccCount = 0;   // Count how many consective times a near exhausted battery condition has been read
 float SigLevel;
@@ -106,6 +109,7 @@ int pagenum;            // holder for page number
 int mode;               // 1 = 631, 2 = NP, 3 = Alt. Marks the mode the phone's currently in. Needed for certain things.
 unsigned int longTimer = 0;   // loop counter to do something periodically with a long interval (every 10s).
 unsigned int shortTimer = 0;  // loop counter to do someting short (a few ms) but frequently (every second)
+byte ringTimer = 0;           // Timer (seconds) for ringing alert, e.g. LED, vibration.
 
 byte rtcYear = 0;
 byte rtcMonth;
@@ -124,35 +128,45 @@ const int leadingDay[] = {0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4};  // Array used fo
 //Define general output pins
 const byte StatusLED = 13;
 const byte HookLED = 49;
-const byte BGLED1 = 7;        //bargraph LED 0 (D15)
-const byte BGLED2 = 6;        //bargraph LED 1 (D14)
-const byte BGLED3 = 16;       //bargraph LED 2 (D13)
-const byte BGLED4 = 17;       //bargraph LED 3 (D12)
-const byte BGLED5 = 14;       //bargraph LED 4 (D11)
-const byte BGLED6 = 15;       //bargraph LED 5 (D10)
-const byte BGLED7 = 42;       //bargraph LED 6 (D9)
-const byte BGLED8 = 43;       //bargraph LED 7 (D8)
-const byte BGLED9 = 47;       //bargraph LED 8 (D7)
-const byte BGLED10 = 48;      //bargraph LED 9 (D6)
-const byte FONAWake = A0;
-const byte eink_ENA = 31;
+const byte BGLED1 = 7;        // bargraph LED 0 (D15)
+const byte BGLED2 = 6;        // bargraph LED 1 (D14)
+const byte BGLED3 = 16;       // bargraph LED 2 (D13)
+const byte BGLED4 = 17;       // bargraph LED 3 (D12)
+const byte BGLED5 = 14;       // bargraph LED 4 (D11)
+const byte BGLED6 = 15;       // bargraph LED 5 (D10)
+const byte BGLED7 = 42;       // bargraph LED 6 (D9)
+const byte BGLED8 = 43;       // bargraph LED 7 (D8)
+const byte BGLED9 = 47;       // bargraph LED 8 (D7)
+const byte BGLED10 = 48;      // bargraph LED 9 (D6)
+const byte FONAWake = A0;     // FONA 'Key' pin, toggles power. NB Adafruit datasheet error; hold low for 64ms min to toggle power, not 5s.
+const byte eink_ENA = 31;     // Leave enabled, power control is handled by the GxEPD2 library, disabling requires re-init
 
 //Define input pin
-const byte HookButton = 33;       //Make call, hangup call, or answer incoming call (momentary switch shorts to gnd)
-const byte ClearButton = 36;      //Clear number currently in dialout buffer from rotary dial (momentary switch gnd)
-const byte SignalButton = 34;     //Hold to check signal strengh
-const byte BatteryButton = 37;    //Hold to check battery level
-const byte SaButton = 35;         //Hold to check battery level
-const byte FnButton = 32;         //Hold to check battery level
-const byte ModeSwitch_631 = 20;   //SP3T switch positioned to append a certain area code to all calls. NOTE: swap pin with ModeSwitch_alt for 1st rev boards
-const byte ModeSwitch_NP = 19;    //SP3T switch posiioned to "No Prepend" mode, in which a full 10-digit phone number is needed.
-const byte ModeSwitch_alt = 18;   //SP3T switch positioned to switch to taking the alternate function of each button.
-const byte RotaryPulseIn = 39;    //The pin that reads the state of the rotary dial.
-const byte PowerState = A2;       //Reads the power state of the FONA module, 1=ON
+const byte HookButton = 33;       // Make call, hangup call, or answer incoming call (momentary switch shorts to gnd)
+const byte ClearButton = 36;      // Clear number currently in dialout buffer from rotary dial (momentary switch gnd)
+const byte SignalButton = 34;     // Hold to check signal strengh
+const byte BatteryButton = 37;    // Hold to check battery level
+const byte SaButton = 35;         // Hold to check battery level
+const byte FnButton = 32;         // Hold to check battery level
+const byte RotaryPulseIn = 39;    // The pin that reads the state of the rotary dial.
+const byte PowerState = A2;       // Reads the power state of the FONA module, 1=ON
+const byte ModeSwitch_NP = 19;    // SP3T switch posiioned to "No Prepend" mode, in which a full 10-digit phone number is needed.
+#ifdef HAS_VIBRATE
+const byte ModeSwitch_631 = 18;   // SP3T switch positioned to append a certain area code to all calls. NOTE: swap pin with ModeSwitch_alt for 1st rev boards
+const byte ModeSwitch_alt = 20;   // SP3T switch positioned to switch to taking the alternate function of each button.
+const byte VibMotor = 5;          // Only available on early revision 3G boards :(
+#else
+const byte ModeSwitch_631 = 20;   // The '631' and Alt mode connections were reversed on the later board revision without the vibration motor
+const byte ModeSwitch_alt = 18;
+#endif
 
-SoftwareSerial FONAserial(12, 9); //Rx, Tx. Requires hardware mod, see forum "Firmware stuff" thread.
+SoftwareSerial FONAserial(12, 9); // Rx, Tx. Requires hardware mod, see forum "Firmware stuff" thread.
 
 void setup(){
+#ifdef HAS_VIBRATE
+pinMode(VibMotor, OUTPUT);
+digitalWrite(VibMotor, HIGH);
+#endif
 // Set output pin functions
   pinMode(StatusLED, OUTPUT);
   pinMode(HookLED, OUTPUT);
@@ -192,49 +206,61 @@ void setup(){
   FONAserial.begin(9600);         // this can be increased this too, max tbc with logic analyser...
 
   // Check if FONA is ON, turn on if necessary.
-  // The FONAwake pin toggles power so let's check if it's already on.
+  // The FONA 'Key' pin toggles power so let's check if it's already on, this can save unnecessary delay.
   if (digitalRead(PowerState) == LOW) {
     Serial.printf(F("\nFONA is OFF\n"));
-    digitalWrite(FONAWake, LOW);    //Holding LOW for MIN 64ms wakes FONA  
+    digitalWrite(FONAWake, LOW);           // Holding LOW for MIN 64ms wakes FONA  
     delay(128);
     digitalWrite(FONAWake, HIGH);
-    while (PowerState == LOW) {}    //wait for FONA to power up, approx 5s
-    Serial.printf(F("\nFONA is ON\n\n"));
+    while (PowerState == LOW) {}           // wait for FONA to power on
+    Serial.printf(F("\nFONA INITIALISING\n\n"));
+    delay(6000);                           // Wait for FONA to initialise, up to 6s.
   } else {
     Serial.printf(F("\nFONA is already ON\n\n"));
+    delay(1000);                           // FONA already on & assumed initialised
   }
 
-  display.init(115200);                  // Initialise and display a welcome screen
+  display.init(115200);                    // Initialise and display a welcome screen
   welcomeDisplay();
   
-  delay(5000);                           // FONA can take up to 5-6s to start, the welcome screen took >1s
   // Initialise the FONA
-  FONAserial.println(F("AT"));           // Helps baud rate auto selection: https://en.wikipedia.org/wiki/Hayes_command_set#Autobaud
-  Serial.println(FONAread(50));          // wait up to 50ms for start of reply then send reply over USB serial
+  FONAserial.println(F("AT"));             // Helps baud rate auto selection: https://en.wikipedia.org/wiki/Hayes_command_set#Autobaud
+  Serial.println(FONAread(50));            // wait up to 50ms for start of reply then send reply over USB serial
   delay(50);
-  FONAserial.println(F("AT+IPR=9600"));  // Set baud rate on phone
+  FONAserial.println(F("AT+IPR=9600"));    // Set baud rate on phone
   Serial.println(FONAread(50));
   delay(50);
-  FONAserial.println(F("AT+CVHU=0"));    // Sets voice "hang up" control so that "ATH" disconnects voice calls.
+  FONAserial.println(F("AT+CVHU=0"));      // Sets voice "hang up" control so that "ATH" disconnects voice calls.
   Serial.println(FONAread(50));
   delay(50);
-  FONAserial.println(F("AT+CSDVC=3"));   // Set audio output channel. 3 is the speaker.
+  FONAserial.println(F("AT+CSDVC=3"));     // Set audio output channel. 3 is the speaker.
   Serial.println(FONAread(50));
   delay(50);
   FONAserial.println(F("AT+CRXGAIN=10000"));  // Set Rx Gain, (max ‭value 65,536‬) which affects the speaker volume during calls...
   Serial.println(FONAread(50));            // 10000 is a good value for use of the speaker as a handset (if aged under 50)!
   delay(50);
-  FONAserial.println(F("AT+CLVL=3"));    // Set volume (0-8)
+  FONAserial.println(F("AT+CLVL=3"));      // Set volume (0-8)
   Serial.println(FONAread(50));
   delay(50);
-  FONAserial.println(F("AT+CRSL=8"));    // Ringer volume (0-8)
+  FONAserial.println(F("AT+CRSL=8"));      // Ringer volume (0-8)
   Serial.println(FONAread(50));
   delay(50);
-  FONAserial.println(F("AT+CLIP=1"));    // Enable 'Calling line identification presentation' (caller ID messages)
+  FONAserial.println(F("AT+CLIP=1"));      // Enable 'Calling line identification presentation' (caller ID messages)
   Serial.println(FONAread(50));
   delay(50);
-  //****  The following AT commands are stored in non-volatile memory. After sending to the FONA once, these lines can be commented out.
-  FONAserial.println(F("AT+CTZU=1"));    // Enable automatic time & time zone update from cell network.
+  FONAserial.println(F("ATI"));            // Send FONA identification information, including IMEI, to USB serial
+  Serial.println(FONAread(50));
+  delay(50);
+  // ******  The following AT commands are stored in non-volatile memory:
+  FONAserial.println(F("AT+CTZU=1"));      // Enable automatic time & time zone update from cell network.
+  Serial.println(FONAread(50));
+  delay(50);
+  FONAserial.print(F("AT+CRSL="));         // Reset ring level else we might end up with muted ringer and no vibration.
+  FONAserial.println(rlvl);                // Default ring level.
+  Serial.println(FONAread(50));
+  delay(50);
+  FONAserial.print(F("AT+CLVL="));         // Reset ring level else we might end up with muted ringer and no vibration.
+  FONAserial.println(clvl);                // Default ring level.
   Serial.println(FONAread(50));
 
   n = 0;    //Starting phone number digit value is 0
@@ -269,24 +295,34 @@ void loop() {
     shortTimer = 0;                                      // Hint: this would also be a good place to insert call state parsing
     //Serial.println(F("Short timer tick"));             // Optional for debugging
     checkAlerts();                                       // Check for an alert from the FONA, e.g. incoming call? Caller ID?
+    #ifdef HAS_VIBRATE                                   // ****** VIBRATION OPTION if installed
+    if (ringTimer > 0  && rlvl == 0) {                   // Turn on vibration if 'RING' received from FONA & ring muted.
+      digitalWrite(VibMotor, LOW);                       // Vibration cadence mimics the ringing sound:
+      ringTimer --;                                      // On 2s, off 4s.
+    }
+    else {
+      ringTimer = 0;
+      digitalWrite(VibMotor, HIGH);
+    }
+    #endif                                               // ****** END VIBRATION OPTION
     longTimer++;
   }
   shortTimer++;
   
   if (longTimer > 10) {                                           // Do something here periodically approx ever 10s...
-    longTimer = 0;                                                // we can do something that takes more than 5ms only if the dial not in use.
+    longTimer = 0;                                                // We can do something that takes more than 5ms only if the dial not in use.
     //Serial.println(F("Long timer tick"));                       // Here we update display with cell network time every 10s.
     if (!(StartTimeSinceLastPulse == true || StillOn == true)) {  // If the dial is not in use, do periodic stuff:
       displayCID();                                               // Display last caller ID, or 'none', or 'witheld. Tiny font to allow 16 digits.
       displayTime();                                              // Display date & time if the minute has changed.
-      if (readVcc() > 341) {                             // *** GRACEFUL POWERDOWN when battery is almost exhausted ***
-        lowVccCount++;                                   // Check whether battery voltage has consistantly been very low (< 3.3V). 
-        Serial.printf("\nLOW BATTERY WARNING %d\n", lowVccCount);
-        if (lowVccCount > 5) {                           // If so, powerdown (to a few 100 microAmps) display powerdown time & blink status LED every 4s.
-          Serial.printf(F("\nLOW BATTERY POWERDOWN\n")); // Note readVcc() is much faster (2.1ms) than using the FONA battery 
-          shutdownPhone();                               // status command & therefore very unlikely to affect loop timing of the rotary dial.
-        }                                                // Note: readVcc() returns a value inversely proportional to Vcc (the '>' is correct)
-      }                                                  // Vcc (mV) = 1125300 / readVcc()
+      if (readVcc() > 341) {                                      // *** GRACEFUL POWERDOWN when battery is almost exhausted ***
+        lowVccCount++;                                            // Check whether battery voltage has consistantly been very low (< 3.3V). 
+        Serial.printf("\nLOW BATTERY WARNING %d\n", lowVccCount); // If so; powerdown FONA, display powerdown time, blink hook LED every 4s.
+        if (lowVccCount > 5) {                                    // Note: 3.3V is the min supply voltage for the FONA,
+          Serial.printf(F("\nLOW BATTERY POWERDOWN\n"));          // readVcc() is much faster (2.1ms) than using the FONA battery status check.
+          shutdownPhone();                                        // This fast read is very unlikely to affect loop timing of the rotary dial.
+        }                                                         // Note: readVcc() returns a value inversely proportional to Vcc (the '>' is correct)
+      }                                                           // Vcc (mV) = 1125300 / readVcc()
       else
         lowVccCount = 0;
     }
@@ -294,7 +330,7 @@ void loop() {
   // ***************************** End periodic stuff *****************************
 
 
-  if (TimeSinceLastPulse > 30000) {   // Interdigit pause? Approx 3s since last dialled number?
+  if (TimeSinceLastPulse > 20000) {   // Interdigit pause? Approx 2s since last dialled number?
     StartTimeSinceLastPulse = false;  // reset here otherwise StartTimeSinceLastPulse never goes high after first...
     TimeSinceLastPulse = 0;           // dial and TimeSinceLastPulse counts forever - so reset here.
   }
@@ -334,7 +370,7 @@ void loop() {
     //PLACE A CALL IF THE ROTARY HAS BEEN USED & AT LEAST 7 DIGITS WERE DIALED
     if (newrotaryinput = true && PNumber[6] != 99){
       if (digitalRead(ModeSwitch_631) == LOW){  //Check mode switch
-        MakeCall631();   //Make a call using the number stored in the buffer as input from the rotary dial, prepended with 631
+        MakeCall631();      //Make a call using the number stored in the buffer as input from the rotary dial, prepended with 631
       }
       else {  //If in either No-Prepend or Alt mode
         MakeCall();   //Make a call using the number stored in the buffer as input from the rotary dial
@@ -343,7 +379,7 @@ void loop() {
     //ANSWER INCOMING CALL IF CALLON = FALSE
     else if (CallOn == false){
       FONAserial.println(F("ATA"));
-      //CallOn = true;      // !!!FIX!!!. The problem with turning the CallOn flag ON is that there's no check to see if a call was actually picked up.
+      //CallOn = true;      // The problem with turning the CallOn flag ON is that there's no check to see if a call was actually picked up.
     }                       // FIXED! By testing for call begin and end messages every 1s with the queryAlert() function.
     delay(800);             // Don't make this delay too short or we risk answering a call & immediately disconnecting!
     //IF STILL HOLDING THE HOOK BUTTON BY ITSELF, HANGUP CALL REGARDLESS OF CALLON STATE
@@ -351,7 +387,7 @@ void loop() {
       FONAserial.println(F("ATH"));
       delay(100);
       FONAserial.println(F("AT+CHUP"));
-      if (CallOn == true){    //If CallOn = true, make it false. This is just for the hook LED.
+      if (CallOn == true){  //If CallOn = true, make it false. This is just for the hook LED.
         CallOn = false;
       }
     }
@@ -382,26 +418,29 @@ void loop() {
       }
       if (PNumber[0] != 99){
         clvl=PNumber[0];
-        FONAserial.print(F("AT+CLVL="));
-        FONAserial.println(clvl);
+        if (clvl > 7)                    // valid ring level is 0-8
+          clvl = 8;
         BarGraphSlow(PNumber[0]);
         delay(100);
         BarGraphSlow(PNumber[0]);
         delay(100);
         BarGraphSlow(PNumber[0]);
         ClearBufferSilent();
+        Serial.print(F("Call volume: "));
+        Serial.println(clvl);
       }
     }
   }
   //*********************B BUTTON**********************************************************************************
-  if (digitalRead(BatteryButton) == LOW){   
+  if (digitalRead(BatteryButton) == LOW) {   
     //IF IN 631 MODE, CHECK BATTERY LEVEL
-    if (digitalRead(ModeSwitch_631) == LOW){
+    if (digitalRead(ModeSwitch_631) == LOW) {
       mode = 1;
       BatteryLevel();
+      delay(800);
     }
     //IF IN NP MODE, CALL SPEED DIAL 2
-    else if (digitalRead(ModeSwitch_NP) == LOW){
+    else if (digitalRead(ModeSwitch_NP) == LOW) {
       mode = 2;
       ClearBufferSilent();
       pagenum = 3;
@@ -410,22 +449,26 @@ void loop() {
       MakeCall();
     }
     //IF IN ALT MODE, SET RING VOLUME
-    else if (digitalRead(ModeSwitch_alt) == LOW){
+    else if (digitalRead(ModeSwitch_alt) == LOW) {
       mode = 3;
       ClearBufferSilent();
       while (digitalRead(BatteryButton) == LOW){
         RotaryIn();
       }
-      if (PNumber[0] != 99){
+      if (PNumber[0] != 99) {
         rlvl = PNumber[0];
+        if (rlvl > 7)                    // valid ring level is 0-8
+          rlvl = 8;
+        BarGraphSlow(PNumber[0]);
+        delay(100);
+        BarGraphSlow(PNumber[0]);
+        delay(100);
+        BarGraphSlow(PNumber[0]);
         FONAserial.print(F("AT+CRSL="));
         FONAserial.println(rlvl);
-        BarGraphSlow(PNumber[0]);
-        delay(100);
-        BarGraphSlow(PNumber[0]);
-        delay(100);
-        BarGraphSlow(PNumber[0]);
         ClearBufferSilent();
+        Serial.print(F("Ring level: "));
+        Serial.println(rlvl);
       }
     }
   }
