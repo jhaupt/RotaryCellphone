@@ -52,7 +52,7 @@ void RotaryIn(){  //Listen for pulses from the rotary dial. NO LOOP here. This r
     TimeSinceLastPulse++;
   }
 
-  if (TimeSinceLastPulse == 4715){      // Inter-digit pause. Has 500ms elapsed? 800ms is the standard pause.
+  if (TimeSinceLastPulse == 4715){      // Inter-digit pause. Has 500ms elapsed? (approx 9430 loop iterations per second).
     PNumber[k] = n;                     // write the current value of n to the current position (k) in the phone number (PNumber)
     k++;                                // increment to the next position of the phone number.
     FONAserial.print(F("AT+CPTONE="));  // Play DTMF tone over speaker
@@ -424,6 +424,7 @@ void checkAlerts() {                                // Check for unsolicited FON
         callerID = "CLI invalid";
     }
   }
+  // PORTH = PORTH & 0b10111111;       // Force FONA Rx low to enable FONA auto sleep - work in progress - not yet ready
 }
 
 void displayCID() {                             // Use e-paper partial update to display caller ID
@@ -458,7 +459,7 @@ void displayTime() {                            // Use e-paper partial update to
     display.firstPage();  //this function is called before every time ePaper is updated.
     do {
       display.fillScreen(GxEPD_WHITE);
-      display.setFont();                        //Back to default font
+      display.setFont();                        // Back to default font
       dateStr = dowStr + ' ' + rtcDay + ' ' + monthStr;
       int dateStartX = int((104 - (dateStr.length() * 6)) / 2); // Centre the date horizontally
       display.setCursor(dateStartX, 0);
@@ -561,7 +562,7 @@ void getTime() {
   }
 }
 
-void BatteryLevel() {                       // Display bargraph of battery level
+void BatteryLevel() {                          // Display bargraph of battery level
   while (digitalRead(BatteryButton) == LOW) {  // Loop for as long as the battery level button is depressed.
     byte tries = 0;
     bool validMsg = false;
@@ -663,12 +664,13 @@ void ToneReport() {                     // Ditto for the speaker tones, a condit
   } while (PNumber[dd] != 99 && dd < 16);
 }
 
-long readVcc() {  // Read 1.1V reference against AVcc
-  // set the reference to Vcc and the measurement to the internal 1.1V reference.
+long readVcc() {  // Fast battery Vcc measurement without using the FONA
+  // Read 1.1V reference against Vcc, set the reference to Vcc
+  // and set the measurement to the internal 1.1V reference.
   // Code from: https://www.instructables.com/id/Secret-Arduino-Voltmeter/
   // This is not as accurate as getting battery state from the FONA but it's must faster (2.1ms)
   ADMUX = _BV(REFS0) | _BV(MUX4) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1); 
-  delay(2); // Wait for Vref to settle
+  delay(2);            // Wait for Vref to settle
   ADCSRA |= _BV(ADSC); // Start conversion
   while (bit_is_set(ADCSRA,ADSC)); // measuring
   uint8_t low  = ADCL; // must read ADCL first - it then locks ADCH  
@@ -681,6 +683,10 @@ long readVcc() {  // Read 1.1V reference against AVcc
   return result;
 }
 
+// This switches off the phone module when the battery voltage has been below 3.3V for a number of consecutive measurement,
+// over approx a 1 min period. This is minimum supply voltage for the FONA, it helps protect the battery and the FONA
+// will restart once on charge and Vcc rises above 3.5V. The ATmega is put into sleep except for a fast battery check and
+// brief hook LED flash once every 4s.
 void shutdownPhone () {                       // Powerdown gracefully and display the shutdown time
   FONAserial.println(F("AT+CPOF"));           // Poweroff the FONA
   display.setPartialWindow(0, 0, 104, 27);    // Partial update top 27 rows of pixels
@@ -695,13 +701,17 @@ void shutdownPhone () {                       // Powerdown gracefully and displa
     display.setCursor(0, 18);
     display.printf("battery at %02d:%02d", rtcHour, rtcMin);
   } while (display.nextPage());
-  display.powerOff();                         // Display power off rquired for partial updates
-  Serial.printf(F("\nstatus LED blinking\n"));
+  display.powerOff();                         // Display power off required for partial updates
+  Serial.printf(F("\nHook LED blinking\n"));
   delay(10);                                  // Give the Serial time to send (watchdog sleep messes with USB serial).
-  while (true) {                              // Very low power blink (approx 200uA average).
-    Watchdog.sleep(4000);                     // FOREVER (until the battery internal protection disconnects all power).
+  digitalWrite(eink_ENA, LOW);                // Power off the Adafruit eInk module.
+  while (readVcc() > 321) {                   // Very low power blink (approx 200uA average),
+    Watchdog.sleep(4000);                     // Until phone is on charge and Vcc > 3.5V
     digitalWrite(HookLED, HIGH);
     Watchdog.sleep(10);
     digitalWrite(HookLED, LOW);
   }
+  lowVccCount = 0;                            // Battery must be charging, restart FONA. Reset lowVccCount to avoid endless loop.
+  delay(6000);                                // Just in case powerdown command was recently sent, allow powerdown to complete.
+  setup();                                    // Power on & setup the FONA again.
 }
