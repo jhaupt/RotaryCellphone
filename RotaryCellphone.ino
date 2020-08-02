@@ -87,9 +87,9 @@ GxEPD2_BW<GxEPD2_213_flex, MAX_HEIGHT(GxEPD2_213_flex)> display(GxEPD2_213_flex(
                                                                                                   // Flexible Monochrome EPD (AKA GDEW0213I5F)
 																								  
 //Define variables:
-const byte nChars = 80; // max number of character to buffer (may need more for texts). Note SoftwareSerial buffer limit of 63 chars
-byte n = 1;             //For counting up numbers from the rotary dial for entering a digit in the phone number
-byte k = 0;             //For specifying the digit in a phone number
+const byte nChars = 80; // Max number of character to buffer (may need more for texts). Note SoftwareSerial buffer limit of 63 chars
+byte n = 0;             // For counting up numbers from the rotary dial for entering a digit in the phone number
+byte k = 0;             // For specifying the digit in a phone number
 unsigned long TimeSinceLastPulse = 0;   //used to see if enough of a delay has happened since the last pulse from the rotary dial to consider the sequence complete.
 String buffer;          // String object buffer for incoming messages from FONA
 String callerID;        // String object to store incoming caller ID
@@ -101,8 +101,8 @@ bool CallOn = false;    //Set to "true" when a call is in progress, to determine
 bool newrotaryinput = false;
 float fholder1;
 int iholder;
-int clvl = 2;           // call level storage integer, 2 is the factory default, valid levels are 0-8
-int rlvl = 2;           // ring level storage integer, 2 is the factory default, valid levels are 0-8
+int clvl = 3;           // call level storage integer, 2 is the factory default, valid levels are 0-8
+int rlvl = 4;           // ring level storage integer, 2 is the factory default, valid levels are 0-8
 float BattLevel;
 byte lowVccCount = 0;   // Count how many consective times a near exhausted battery condition has been read
 float SigLevel;
@@ -225,7 +225,7 @@ digitalWrite(VibMotor, HIGH);
     delay(6000);                           // Wait for FONA to initialise, up to 6s.
   } else {
     Serial.printf(F("\nFONA is already ON\n\n"));
-    delay(1000);                           // FONA already on & assumed initialised
+    delay(500);                            // FONA already on & assumed initialised
   }
 
   display.init(115200);                    // Initialise and display a welcome screen
@@ -238,8 +238,9 @@ digitalWrite(VibMotor, HIGH);
   FONAserial.println(F("AT+IPREX=9600"));  // Set baud rate on phone
   Serial.println(FONAread(50));
   delay(50);
-  FONAserial.println(F("ATI"));            // Get FONA identification information, including IMEI.
-  Serial.println(FONAread(50));
+  FONAserial.println(F("ATI"));            // Get FONA identification information, including IMEI and
+  buffer = FONAread(50);                   // store in buffer, it might be useful.
+  Serial.println(buffer);
   delay(50);
   FONAserial.println(F("AT+CVHU=0"));      // Sets voice "hang up" control so that "ATH" disconnects voice calls.
   Serial.println(FONAread(50));
@@ -250,10 +251,12 @@ digitalWrite(VibMotor, HIGH);
   FONAserial.println(F("AT+CRXGAIN=10000"));  // Set Rx Gain, (max ‭value 65,536‬) which affects the speaker volume during calls...
   Serial.println(FONAread(50));            // 10000 is a good value for use of the speaker as a handset (if aged under 50)!
   delay(50);
-  FONAserial.println(F("AT+CLVL=3"));      // Set volume (0-8)
+  FONAserial.print(F("AT+CLVL="));         // Set volume (0-8)
+  FONAserial.println(clvl);
   Serial.println(FONAread(50));
   delay(50);
-  FONAserial.println(F("AT+CRSL=8"));      // Ringer volume (0-8)
+  FONAserial.print(F("AT+CRSL="));         // Ringer volume (0-8)
+  FONAserial.println(rlvl);
   Serial.println(FONAread(50));
   delay(50);
   FONAserial.println(F("AT+CLIP=1"));      // Enable 'Calling line identification presentation' (caller ID messages)
@@ -277,14 +280,37 @@ digitalWrite(VibMotor, HIGH);
   FONAserial.println(F("AT+CRIRS"));       // Clear FONA RI pin (active low)
   Serial.println(FONAread(50));
 
-  n = 0;    //Starting phone number digit value is 0
-  k = 0;    //Starting phone number digit position is 1
-
-  digitalWrite(StatusLED, HIGH);
+  digitalWrite(StatusLED, HIGH);           // FONA setup done, blink status LED.
   delay(500);
   digitalWrite(StatusLED, LOW);
   ClearBuffer();
   Serial.printf(F("SETUP COMPLETE\n\n"));
+
+  // **** If C button held, go to UART passthrough mode for testing ****
+  // **** Will display FONA info and IMEI on ePaper display.        ****
+  // **** Use PuTTY at 115200 for communication (or similar),       ****
+  // **** anything type on the serial terminal will go to the FONA  ****
+  // **** and vice versa until the power is cycled.                 ****
+  if (digitalRead(ClearButton) == LOW) {
+    display.setRotation(1);                 // Display passthrough mode confirmation and FONA info, IMEI etc
+    display.setTextColor(GxEPD_BLACK);
+    display.firstPage();
+    do {
+      display.setFont();                    // Standard (tiny) font
+      display.setCursor(0, 0);
+      display.println(F("PASSTHROUGH MODE:"));
+      display.println(buffer);              // Print FONA info to the display, should be in buffer.
+      display.println(F("Cycle power to quit"));
+    } while (display.nextPage());
+    Serial.println(F("PASSTHROUGH MODE"));
+    while (true) {                          // Stay here forever (until power cycle)
+      if (Serial.available())               // If anything comes in Serial (USB),
+        FONAserial.write(Serial.read());    // read it and send it to the FONA
+
+      if (FONAserial.available())           // If anything comes in from the FONA
+        Serial.write(FONAserial.read());    // read it and send it out Serial (USB)
+    }
+  }
 }
 
 
@@ -413,8 +439,8 @@ void loop() {
 
   //*********************HOOK (H) BUTTON***************************************************************************
   if (digitalRead(HookButton) == LOW){   //Check CALL button
-    //PLACE A CALL IF THE ROTARY HAS BEEN USED & AT LEAST 7 DIGITS WERE DIALED
-    if (newrotaryinput = true && PNumber[6] != 99){
+    //PLACE A CALL IF THE ROTARY HAS BEEN USED & AT LEAST 3 DIGITS WERE DIALED
+    if (newrotaryinput = true && PNumber[2] != 99){
       if (digitalRead(ModeSwitch_631) == LOW) {  //Check mode switch
         MakeCall631();      //Make a call using the number stored in the buffer as input from the rotary dial, prepended with 631
       }

@@ -655,9 +655,10 @@ void MakeCall(){                  // I really didn't want to use a loop here. Ju
     FONAserial.print(PNumber[dd]);
     dd++;
   } while (PNumber[dd] != 99 && dd < 16);
-  FONAread(0);                   // Clear the buffer (it will have overflowed due to echoing tone commands)
+  FONAread(0);                    // Clear the buffer (it will have overflowed due to echoing tone commands)
+  delay(100);
   FONAserial.println(";");
-  Serial.println(FONAread(13));
+  Serial.println(FONAread(20));
   digitalWrite(StatusLED, HIGH);
   delay(500);
   digitalWrite(StatusLED, LOW);
