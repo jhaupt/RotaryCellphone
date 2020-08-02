@@ -1,26 +1,31 @@
-void welcomeDisplay() {                                            // Put you startup/welcome/reset screen here
-  display.setRotation(0);                                          // add a help msg or personal message
+void welcomeDisplay() {                                             // Put you startup/welcome/reset screen here
+  display.setRotation(0);                                           // add a help msg or personal message
   display.setTextColor(GxEPD_BLACK);
-  display.firstPage();                                             // Display a welcome graphic
+  display.firstPage();                                              // Display a welcome graphic
   do {
-    display.drawBitmap(0, 30, sleepy_moon, 104, 76, GxEPD_BLACK);  // Set the array name to the preferred bitmap image
+    if (FONAsleepState == true)
+      display.drawBitmap(0, 30, sleepy_moon, 104, 76, GxEPD_BLACK); // Set the array name to the preferred sleep bitmap image
+    else
+      display.drawBitmap(0, 30, rotary_dial, 104, 76, GxEPD_BLACK); // Set the array name to the preferred active bitmap image
     display.setFont(&FreeSerif9pt7b);
     display.setCursor(2, 122); 
     display.print(F("Rotary"));
     display.setFont(&FreeMonoBold9pt7b);
     display.setCursor(3, 144); 
     display.print(F("CellPhone"));
-    display.setFont();                                             // Back to standard (tiny) font
-    display.setCursor(2, 155);
-    display.print(F("made in Cambridge"));                         // Personalise here
+    display.setFont();                                              // Back to standard (tiny) font
+    display.setCursor(2, 156);
+    display.print(F("made in Cambridge"));                          // Personalise here
+    display.setCursor(9, 168);
+    display.print(F("(0xxxx) xxxxxx"));
   } while (display.nextPage());
-  forceUpdate();                                                   // Update Time & Caller ID on next main loop pass
+  forceUpdate();                                                    // Update Time & Caller ID on next main loop pass
 }
 
-void forceUpdate() {                                               // Force time & caller ID update on next main loop pass
+void forceUpdate() {                                                // Force time & caller ID update on next main loop pass
   longTimer = 99;
   prevRtcMin = 99;
-  prevCallerID = "";                                               // Null string
+  prevCallerID = "";                                                // Null string
 }
 
 void RotaryIn(){  //Listen for pulses from the rotary dial. NO LOOP here. This runs once per iteration of "void loop", so the timing of other things in the main loop will affect this.
@@ -389,6 +394,10 @@ void BarGraphWipeDown(){
 }
 
 void checkAlerts() {                                // Check for unsolicited FONA message; incoming call? Caller ID?
+  if (digitalRead(FONA_RI) == LOW) {                // Poll the FONA RI pin.
+    Serial.println(F("FONA RI low"));
+    FONAwake();                                     // and check if FONA needs waking
+  }
   buffer = FONAread(0);                             // get any FONA message in the receive buffer, no waiting.
   if (buffer.indexOf("RING") > -1) {                // Is the FONA in ringing state?
     ringTimer = 2;                                  // Alert for period (seconds)
@@ -424,18 +433,17 @@ void checkAlerts() {                                // Check for unsolicited FON
         callerID = "CLI invalid";
     }
   }
-  // PORTH = PORTH & 0b10111111;       // Force FONA Rx low to enable FONA auto sleep - work in progress - not yet ready
 }
 
 void displayCID() {                             // Use e-paper partial update to display caller ID
   if (callerID != prevCallerID) {               // Only update display if there is a new Caller ID
     Serial.println(F("Caller ID update"));
-    display.setPartialWindow(0, 185, 104, 27);  // Partial update bottom 27 rows of pixels
+    display.setPartialWindow(0, 186, 104, 27);  // Partial update bottom 26 rows of pixels
     display.firstPage();                        // this function is called before every time ePaper is updated.
     do {
       display.fillScreen(GxEPD_WHITE);          // set the background to white (fill the buffer with value for white)
       display.setFont();                        // Back to default font
-      display.setCursor(2, 186);
+      display.setCursor(2, 187);
       display.print(F("Caller"));
       if (callerID != "none") {
         display.printf(" at %02d:%02d", callHour, callMin);
@@ -464,9 +472,15 @@ void displayTime() {                            // Use e-paper partial update to
       int dateStartX = int((104 - (dateStr.length() * 6)) / 2); // Centre the date horizontally
       display.setCursor(dateStartX, 0);
       display.print(dateStr);
-      display.setFont(&FreeMonoBold9pt7b);
-      display.setCursor(24, 23);
-      display.printf("%02d:%02d", rtcHour, rtcMin);
+      if (FONAsleepState == false) {
+        display.setFont(&FreeMonoBold9pt7b);
+        display.setCursor(24, 23);
+        display.printf("%02d:%02d", rtcHour, rtcMin);
+      }
+      else {
+        display.setCursor(11, 15);
+        display.printf("hold C to wake");
+      }
     } while (display.nextPage());
     display.setFullWindow();                   // Back to full window
     display.powerOff();                        // Display power off rquired for partial updates
@@ -681,6 +695,38 @@ long readVcc() {  // Fast battery Vcc measurement without using the FONA
   // Li-Po batteries must never be discharged below 3.0V & it's not good to rely on the built
   // in battery protection circuit - this can be a very low value.
   return result;
+}
+
+void FONAsleep() {
+  if (FONAsleepState == false) {                // Only switch to sleep if not already sleeping
+    Serial.println(F("Allow FONA to auto sleep"));
+    FONAsleepState = true;
+    welcomeDisplay();
+    displayTime();
+    displayCID();
+  }
+}
+
+void FONAwake() {
+  if (FONAsleepState == true) {                   // Wake FONA if it is already sleeping
+    FONAserial.println(F("AT"));                  // Restore normal RS232 for FONA Rx
+    Serial.println(F("Waking FONA from sleep"));
+    digitalWrite(FONADTR, LOW);                   // Pulldown DTR for 12ms to wake from sleep since DTR debounce is 10ms.
+    delay(12);
+    digitalWrite(FONADTR, HIGH);
+    FONAsleepState = false;
+    //welcomeDisplay();
+    display.setPartialWindow(0, 8, 104, 76);      // Fast partial update for time and main logo area.
+    display.firstPage();                          // this function is called before every ePaper update.
+    do {
+      display.fillScreen(GxEPD_WHITE);
+      display.drawBitmap(0, 30, rotary_dial, 104, 76, GxEPD_BLACK);  // 'Awake' bitmap image
+    } while (display.nextPage());
+    display.setFullWindow();                      // Back to full window
+    display.powerOff();                           // Display power off rquired for partial updates
+  }
+  FONAserial.println(F("AT+CRIRS"));              // reset FONA RI pin (idle high)
+  veryLongTimer = 0;
 }
 
 // This switches off the phone module when the battery voltage has been below 3.3V for a number of consecutive measurement,

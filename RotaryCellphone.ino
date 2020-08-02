@@ -108,9 +108,11 @@ byte lowVccCount = 0;   // Count how many consective times a near exhausted batt
 float SigLevel;
 int pagenum;            // holder for page number
 int mode;               // 1 = 631, 2 = NP, 3 = Alt. Marks the mode the phone's currently in. Needed for certain things.
-unsigned int longTimer = 0;   // loop counter to do something periodically with a long interval (every 10s).
-unsigned int shortTimer = 0;  // loop counter to do someting short (a few ms) but frequently (every second)
-byte ringTimer = 0;           // Timer (seconds) for ringing alert, e.g. LED, vibration.
+unsigned int shortTimer = 0;    // loop counter to do something approx once a second (check buffer for messages).
+unsigned int longTimer = 0;     // loop counter to do something periodically, long interval, approx every 10s.
+unsigned int veryLongTimer = 0; // loop counter to send FONA to sleep after a few mins of inactivity.
+byte ringTimer = 0;             // Timer (seconds) for ringing alert, e.g. LED, vibration.
+bool FONAsleepState = false;    // Flag to check for sleep mode for FONA (can still receive calls during sleep)
 
 byte rtcYear = 0;
 byte rtcMonth;
@@ -122,8 +124,8 @@ byte dow;                             // Day of the week; 0 = Sunday, 6 = Saturd
 String dowStr = "----";               // Max 4 characters
 String monthStr = "---------";        // Max 9 characters
 String dateStr = "-----------------"; // Max 17 characters. Must initialise string otherwise the string addition operator might not run as expected
-byte callHour = 0;              // Time of last incoming call, hours
-byte callMin = 0;               // Time of last incoming call, minutes
+byte callHour = 0;                    // Time of last incoming call, hours
+byte callMin = 0;                     // Time of last incoming call, minutes
 const int leadingDay[] = {0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4};  // Array used for day of the week algorithm
 
 //Define general output pins
@@ -219,7 +221,7 @@ digitalWrite(VibMotor, HIGH);
     delay(128);
     digitalWrite(FONAWake, HIGH);
     while (PowerState == LOW) {}           // wait for FONA to power on
-    Serial.printf(F("\nFONA INITIALISING\n\n"));
+    Serial.printf(F("\nFONA STARTING\n\n"));
     delay(6000);                           // Wait for FONA to initialise, up to 6s.
   } else {
     Serial.printf(F("\nFONA is already ON\n\n"));
@@ -233,7 +235,7 @@ digitalWrite(VibMotor, HIGH);
   FONAserial.println(F("AT"));             // Helps baud rate auto selection: https://en.wikipedia.org/wiki/Hayes_command_set#Autobaud
   Serial.println(FONAread(50));            // wait up to 50ms for start of reply then send reply over USB serial
   delay(50);
-  FONAserial.println(F("AT+IPR=9600"));    // Set baud rate on phone
+  FONAserial.println(F("AT+IPREX=9600"));  // Set baud rate on phone
   Serial.println(FONAread(50));
   delay(50);
   FONAserial.println(F("ATI"));            // Get FONA identification information, including IMEI.
@@ -271,6 +273,9 @@ digitalWrite(VibMotor, HIGH);
   delay(50);
   FONAserial.println(F("AT+CFGRI=1,1"));   // Enable pulldown of RI pin on URC (Unsolicited Result Code)
   Serial.println(FONAread(50));
+  delay(50);
+  FONAserial.println(F("AT+CRIRS"));       // Clear FONA RI pin (active low)
+  Serial.println(FONAread(50));
 
   n = 0;    //Starting phone number digit value is 0
   k = 0;    //Starting phone number digit position is 1
@@ -299,12 +304,15 @@ void loop() {
   else if (digitalRead(ModeSwitch_alt) == LOW)
     mode = 3;
 
-  //if (digitalRead(FONA_RI) == LOW)
+  //if (digitalRead(FONA_RI) == LOW)      // Display state of FONA RI for debugging
   //  digitalWrite(BGLED10, HIGH);
   //else
   //  digitalWrite(BGLED10, LOW);
 
+
   // ***************************** Periodic stuff *****************************
+  // **** short interval, approx every second  ****
+  // **** check FONA for URC (eg ring message) ****
   if (shortTimer > 9430) {                               // Do something quick every 1s (<5ms so as to not affect dial timing)
     shortTimer = 0;                                      // Hint: this would also be a good place to insert call state parsing
     //Serial.println(F("Short timer tick"));             // Optional for debugging
@@ -324,18 +332,21 @@ void loop() {
       digitalWrite(VibMotor, HIGH);                      // Turn off vibration motor (negative logic).
       #endif
     }
+    if (FONAsleepState == true)                          // If FONA should be sleeping, force its Rx pin low to enable auto sleep (normal RS232 idle state is high)
+      PORTH = PORTH & 0b10111111;                        // sorry but direct port manipulation is 100x faster than: digitalWrite(9, LOW)
     longTimer++;
+    veryLongTimer++;
   }
   shortTimer++;
-  
+
+  // **** long interval, approx every 10 seconds ****
+  // **** update time and CID if required        ****
+  // **** fast check battery is OK or shutdown   ****
   if (longTimer > 10) {                                           // Do something here periodically approx ever 10s...
     longTimer = 0;                                                // We can do something that takes more than 5ms only if the dial not in use.
-    // PORTH = PORTH | 0b01000000;                                   // This wakes FONA from sleep - work in progrss - not yet ready.
-    // digitalWrite(FONADTR, LOW);
-    // delay(12);                                                    // Pulldown DTR for 12ms to wake from sleep since DTR debounce is 10ms.
-    // digitalWrite(FONADTR, HIGH);
     // Serial.println(F("Long timer tick"));                      // Here we update display with cell network time every 10s.
-    if (!(StartTimeSinceLastPulse == true || StillOn == true)) {  // If the dial is not in use, do periodic stuff:
+    // if (!(StartTimeSinceLastPulse == true || StillOn == true) && FONAsleepState == false) { 
+    if (StartTimeSinceLastPulse == false && StillOn == false && FONAsleepState == false) { // do periodic stuff if the dial is not in use and the FONA not sleeping:
       displayCID();                                               // Display last caller ID, or 'none', or 'witheld. Tiny font to allow 16 digits.
       displayTime();                                              // Display date & time if the minute has changed.
       if (readVcc() > 341) {                                      // *** GRACEFUL POWERDOWN when battery is almost exhausted ***
@@ -350,6 +361,13 @@ void loop() {
         lowVccCount = 0;
     }
   }
+
+  // **** very long interval, approx every 5 minutes ****
+  if (veryLongTimer > 300) {           // count in approx 1 second steps
+    veryLongTimer = 0;
+    FONAsleep();   
+  }
+  
   // ***************************** End periodic stuff *****************************
 
 
@@ -378,14 +396,17 @@ void loop() {
     //IF THE CLEAR BUTTON IS STILL DEPRESSED, CLEAR THE BUFFER
     if (digitalRead(ClearButton) == LOW) {
       ClearBuffer();                         //Clear whatever number has been entered so far
-      FONAserial.println(F("AT+CRIRS"));
-      Serial.println(FONAread(50));
       digitalWrite(StatusLED, HIGH);
       delay(500);
       digitalWrite(StatusLED, LOW);
       delay(500);
-      if (digitalRead(ClearButton) == LOW) { // If button still held, reload the welcome display
-        welcomeDisplay();
+      if (digitalRead(ClearButton) == LOW) { // If button still held, wake the FONA or reload the welcome display as appropriate
+        if (FONAsleepState == true) {
+          FONAwake();
+          forceUpdate();                     // Forces time update and immediate refresh of time and CID display.
+        }
+        else
+          welcomeDisplay();
       }
     }
   }
