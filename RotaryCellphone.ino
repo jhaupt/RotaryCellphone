@@ -101,7 +101,7 @@ bool CallOn = false;    //Set to "true" when a call is in progress, to determine
 bool newrotaryinput = false;
 float fholder1;
 int iholder;
-int clvl = 3;           // call level storage integer, 2 is the factory default, valid levels are 0-8
+int clvl = 2;           // call level storage integer, 2 is the factory default, valid levels are 0-8
 int rlvl = 4;           // ring level storage integer, 2 is the factory default, valid levels are 0-8
 float BattLevel;
 byte lowVccCount = 0;   // Count how many consective times a near exhausted battery condition has been read
@@ -154,8 +154,8 @@ const byte SaButton = 35;         // Hold to check battery level
 const byte FnButton = 32;         // Hold to check battery level
 const byte RotaryPulseIn = 39;    // The pin that reads the state of the rotary dial.
 const byte PowerState = A2;       // Reads the power state of the FONA module, 1=ON
-const byte ModeSwitch_NP = 19;    // SP3T switch posiioned to "No Prepend" mode, in which a full 10-digit phone number is needed.
 const byte FONA_RI = 24;          // FONA Ring Indicator output, this stays high after receiving a call or text & must be reset with an AT command.
+const byte ModeSwitch_NP = 19;    // SP3T switch posiioned to "No Prepend" mode, in which a full 10-digit phone number is needed.
 #ifdef HAS_VIBRATE
 const byte VibMotor = 5;          // Vibration motor pin, only available on early revision 3G boards, active low
 const byte ModeSwitch_631 = 18;   // SP3T switch positioned to append a certain area code to all calls. NOTE: swap pin with ModeSwitch_alt for 1st rev boards
@@ -235,9 +235,9 @@ digitalWrite(VibMotor, HIGH);
   FONAserial.println(F("AT"));             // Helps baud rate auto selection: https://en.wikipedia.org/wiki/Hayes_command_set#Autobaud
   Serial.println(FONAread(50));            // wait up to 50ms for start of reply then send reply over USB serial
   delay(50);
-  FONAserial.println(F("AT+IPREX=9600"));  // Set baud rate on phone
-  Serial.println(FONAread(50));
-  delay(50);
+  FONAserial.println(F("AT+IPREX=9600"));  // Set baud rate on phone, takes a while this command.
+  delay(200);                              // Not interested in the response, just clear the buffer.
+  FONAread(0);
   FONAserial.println(F("ATI"));            // Get FONA identification information, including IMEI and
   buffer = FONAread(50);                   // store in buffer, it might be useful.
   Serial.println(buffer);
