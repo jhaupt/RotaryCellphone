@@ -57,7 +57,7 @@ void RotaryIn(){  //Listen for pulses from the rotary dial. NO LOOP here. This r
     TimeSinceLastPulse++;
   }
 
-  if (TimeSinceLastPulse == 4715){      // Inter-digit pause. Has 500ms elapsed? (approx 9430 loop iterations per second).
+  if (TimeSinceLastPulse == 2358){      // Inter-digit pause. Has 250ms elapsed? (approx 9430 loop iterations per second).
     PNumber[k] = n;                     // write the current value of n to the current position (k) in the phone number (PNumber)
     k++;                                // increment to the next position of the phone number.
     FONAserial.print(F("AT+CPTONE="));  // Play DTMF tone over speaker
