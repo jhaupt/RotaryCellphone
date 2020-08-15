@@ -370,8 +370,6 @@ void loop() {
   // **** fast check battery is OK or shutdown   ****
   if (longTimer > 10) {                                           // Do something here periodically approx ever 10s...
     longTimer = 0;                                                // We can do something that takes more than 5ms only if the dial not in use.
-    // Serial.println(F("Long timer tick"));                      // Here we update display with cell network time every 10s.
-    // if (!(StartTimeSinceLastPulse == true || StillOn == true) && FONAsleepState == false) { 
     if (StartTimeSinceLastPulse == false && StillOn == false && FONAsleepState == false) { // do periodic stuff if the dial is not in use and the FONA not sleeping:
       displayCID();                                               // Display last caller ID, or 'none', or 'witheld. Tiny font to allow 16 digits.
       displayTime();                                              // Display date & time if the minute has changed.

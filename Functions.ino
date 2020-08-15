@@ -57,7 +57,7 @@ void RotaryIn(){  //Listen for pulses from the rotary dial. NO LOOP here. This r
     TimeSinceLastPulse++;
   }
 
-  if (TimeSinceLastPulse == 2358){      // Inter-digit pause. Has 250ms elapsed? (approx 9430 loop iterations per second).
+  if (TimeSinceLastPulse == 1415){      // Inter-digit pause. Has 150ms elapsed? (approx 9430 loop iterations per second).
     PNumber[k] = n;                     // write the current value of n to the current position (k) in the phone number (PNumber)
     k++;                                // increment to the next position of the phone number.
     FONAserial.print(F("AT+CPTONE="));  // Play DTMF tone over speaker
@@ -88,10 +88,10 @@ void StarPoundRotaryIn(){   //Listen for pulses from the rotary dial. NO LOOP he
       }
       delay(10);
     }
-    StillOn = true;   // ...and turn on the flag that says a pulse just happened.
+    StillOn = true;       // ...and turn on the flag that says a pulse just happened.
   }
 
-  if (StillOn == true){     //If a pulse just happened...
+  if (StillOn == true){   //If a pulse just happened...
     if ((digitalRead(RotaryPulseIn) == LOW)){   //See if the pin connected to the rotary dial goes low...
       StillOn = false;    //...if it did, we turn off the "StillOn" flag.
       digitalWrite(StatusLED, HIGH);
@@ -106,7 +106,7 @@ void StarPoundRotaryIn(){   //Listen for pulses from the rotary dial. NO LOOP he
     TimeSinceLastPulse++;
   }
 
-  if (TimeSinceLastPulse == 800) {         // If standard inter-digit pause (800ms) has elapsed...
+  if (TimeSinceLastPulse == 1415) {          // If inter-digit pause (150ms) has elapsed
     PNumber[k] = n;    //...and write the current value of n to the current position (k) in the phone number (PNumber)
     k++;      //increment to the next position of the phone number
     if (n == 2){    //Consider this a "*"
