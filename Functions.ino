@@ -648,7 +648,6 @@ void MakeCall631(){
 
 void MakeCall(){                  // I really didn't want to use a loop here. Justine's original algorithm is so easy to follow
   ToneReport();                   // but this do...while loop makes variable length dialling much easier.
-  CallOn = true;
   byte dd = 0;                    // Dialled Digit index
   FONAserial.print(F("ATD"));
   do {
