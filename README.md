@@ -6,9 +6,7 @@ The motivation behind this fork is to complete the original firmware (April 2020
 
 Secondary motivation is to contribute something back to Justine for making this excellent 3G project open source.
 
-## Hardware changes
-
-### Hardware modification
+## Hardware
 
 FONA Tx cannot talk to the ATmega2560 microcontroller after the e-paper display is initialised. This is because the FONA serial UART tries to talk to the ATmega on pin 19, which is also the ATmega hardware SPI SS pin. When the ATmega is configured as master, SS is configured as output with idle state high. This means the FONA Tx output is connected to an ATmega output!
 
@@ -28,7 +26,7 @@ The vibration motor circuit, if available and installed, is working. The vibrate
 
 **Important:** comment out `#define HAS_VIBRATE` depending on board version. If the board has space for a vibration motor, this should be left defined whether or not a motor is fitted. This is due to differences in connections to the mode switch between board versions.
 
-## Firmware development
+## Firmware
 
 **This fork only works with the above FONA Tx hardware re-wire mod.**
 
@@ -52,11 +50,18 @@ Changed name of *main.ino* to *RotaryCellphone.ino*. This removes the requiremen
 - Shutdown the phone when battery voltage drops below 3.3V
 - Restart the phone when battery voltage rises above 3.5V (recharging)
 - When the phone shuts down, the Hook LED flashes once every 4s to indicate charging is required
-- Passthrough mode. Hold 'C' while the phone is starting to communicate with the FONA module directly.
+- Passthrough mode. Hold 'C' while the phone is starting to communicate with the FONA module directly
 - Easter egg, sorry there aren't any... yet!
 
 ## Future work
 
 August 2020: no new features are planned for this fork, only bug fixes.
+
+To add more features consider putting the 'smartness' upstream, e.g. routing calls through a home PBX based on Asterisk and FreePBX running a Single Board Computer (SBC). Possible features include; call recording, ring groups, diversion, announcements, Interactive Voice Response... you could even make a button on your RotaryCellPhone open a door or turn on driveway lighting!
+
+- [BeagleBone PBX (somewhat disingenuous about current Pi versions)](http://beaglebone-asterisk.raspbx.org/)  
+- [Raspberry Pi PBX (low power, very reliable on a P3/4 and handles an insane amount of calls)](http://- www.raspberry-asterisk.org/)  
+- [How Many Calls on Raspberry Pi with Asterisk PBX?](https://www.youtube.com/watch?v=dVGf3HrKZl4)  
+- [Call PBX to open a door (skip to 4:50)](https://www.youtube.com/watch?v=kbODHbJyEX4)
 
 It might be possible to use a third party phone module library, some have been considered. TinyGSM is compatible with the SIM5320 but currently not for voice - keep an eye on TinyGSM developments. The Adafruit FONA library requires the RI (ring indicator) wired to a pin using a specific interupt (another hardware mod would be required). A third party library is likely to require several ATmega pin changes.
