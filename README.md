@@ -57,7 +57,7 @@ Changed name of *main.ino* to *RotaryCellphone.ino*. This removes the requiremen
 
 August 2020: no new features are planned for this fork, only bug fixes.
 
-To add more features consider putting the 'smartness' upstream, e.g. routing calls through a home PBX based on Asterisk and FreePBX running a Single Board Computer (SBC). Possible features include; call recording, ring groups, diversion, announcements, Interactive Voice Response... you could even make a button on your RotaryCellPhone open a door or turn on driveway lighting:
+To add features consider putting the 'smartness' upstream, e.g. routing calls through a home PBX based on Asterisk and FreePBX running a Single Board Computer (SBC). Possible features include; call recording, ring groups, diversion, announcements, Interactive Voice Response... you could even make a button on your RotaryCellPhone open a door or turn on driveway lighting:
 
 - [BeagleBone PBX (somewhat disingenuous about current Pi versions)](http://beaglebone-asterisk.raspbx.org/)  
 - [Raspberry Pi PBX (low power, very reliable on a Pi3/4 and handles an insane amount of calls)](http:www.raspberry-asterisk.org/)  
