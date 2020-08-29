@@ -8,11 +8,13 @@ Secondary motivation is to contribute something back to Justine for making this 
 
 ## Hardware
 
-FONA Tx cannot talk to the ATmega2560 microcontroller after the e-paper display is initialised. This is because the FONA serial UART tries to talk to the ATmega on pin 19, which is also the ATmega hardware SPI SS pin. When the ATmega is configured as master, SS is configured as output with idle state high. This means the FONA Tx output is connected to an ATmega output!
+**Hardware mod required**
 
-**Quick and dirty hack:** the ATmega SPI SS pin could be reset to input mode after display initialisation. This would work until the FONA pulls SS low causing the ATmega to switch its SPI to slave mode. The ATmega then locks up when it call the display functions. This ATmega SPI mode switch is done in ATmega hardware, aka microcode, and can't be changed. The quick and dirty hack is to use a watchdog timer to reset the ATmega after it locks up. See here for an example: [forum discussion on firmware](https://skysedge.us/forum/viewtopic.php?f=4&t=1486&start=25).
+The FONA Tx cannot talk to the ATmega2560 on pin 19 after the e-paper display is initialised. This is because pin 19 is also the SPI SS pin. The display uses SPI which sets pin 19 to output. This means an output is connected to an output and the FONA cannot send data to the ATmega.
 
-**Better solution:** is to use another ATmega pin for FONA Tx. Pin 25, (aka Aduino digital pin 12) was chosed because it is one of the few ATmega pins that work with Software Serial and because its corner position makes it easier to solder. **The firmware in this fork requires that FONA Tx is re-wired from pin 19 to pin 25.**
+**Quick and dirty hack:** the ATmega SPI SS pin could be reset to input mode after display initialisation. This would work until the FONA pulls SS low causing the ATmega to switch its SPI to slave mode. The ATmega then locks up when it call the display functions. This ATmega SPI mode switching is done in ATmega hardware, aka microcode, and can't be changed. The quick and dirty hack is to use a watchdog timer to reset the ATmega after it locks up. See here for an example: [forum discussion on firmware](https://skysedge.us/forum/viewtopic.php?f=4&t=1486&start=25).
+
+**Solution:** is to use another ATmega pin for FONA Tx. Pin 25, (aka Aduino digital pin 12) was chosed because it is one of the few ATmega pins that work with Software Serial and because its corner position makes it easier to solder. **The firmware in this fork requires that FONA Tx is re-wired from pin 19 to pin 25.**
 
 ![Preparing the via](images/hwmod_part1.jpg "Cut the track and prepare the via as a solder pad")
 
