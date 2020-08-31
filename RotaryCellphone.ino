@@ -201,6 +201,7 @@ digitalWrite(VibMotor, HIGH);
   pinMode(ModeSwitch_NP, INPUT_PULLUP);
   pinMode(ModeSwitch_alt, INPUT_PULLUP);
   pinMode(FONA_RI, INPUT_PULLUP);
+  pinMode(PowerState, INPUT);
 
   digitalWrite(eink_ENA, HIGH);   // Pull the enable pin up on the e-ink display
   digitalWrite(FONAWake, HIGH);   // Default state for the FONA Power pin input
