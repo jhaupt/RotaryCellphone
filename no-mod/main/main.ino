@@ -106,6 +106,7 @@ const byte ModeSwitch_631 = 20;    //SP3T switch positioned to append a certain 
 const byte ModeSwitch_NP = 19;     //SP3T switch posiioned to "No Prepend" mode, in which a full 10-digit phone number is needed.
 const byte ModeSwitch_alt = 18;    //SP3T switch positioned to switch to taking the alternate function of each button.
 const byte RotaryPulseIn = 39;     //The pin that reads the state of the rotary dial.
+const byte PowerState = A2;        //Reads the power state of the FONA module, 1=ON
 const byte Rx = 53;                //ATmega Rx pin (FONA Tx pin)
 
 SoftwareSerial FONAserial(Rx, Tx); //ATmega receive pin, ATmega transmit pin
@@ -138,17 +139,24 @@ void setup(){
 	pinMode(ModeSwitch_631, INPUT_PULLUP);
 	pinMode(ModeSwitch_NP, INPUT_PULLUP);
 	pinMode(ModeSwitch_alt, INPUT_PULLUP);
+  pinMode(PowerState, INPUT);
 
 	digitalWrite(eink_ENA, HIGH);		//Pull the enable pin up on the e-ink display
+  digitalWrite(FONAWake, HIGH);   //Default state for the FONA Power pin input
+  delay(500);
 
 	Serial.begin(9600);
 	FONAserial.begin(115200);       //Try the FONA default baud rate first, set the working baud rate later
 
-	//Turn on the FONA
-	digitalWrite(FONAWake, LOW);    //Holding LOW for ~5s wakes FONA	
-	delay(6000);
-  digitalWrite(FONAWake, HIGH);
-  FONAserial.println("AT");       //This should help auto baud rate selection but we don't rely on it
+	//Check if FONA is ON, turn on if necessary.
+  if (digitalRead(PowerState) == LOW) {
+	  digitalWrite(FONAWake, LOW);    //Holding LOW for 64ms typ toggles FONA power state
+    delay(128);                     //use twice the time to be sure
+    digitalWrite(FONAWake, HIGH);
+    while (PowerState == LOW) {}    //Wait for FONA to power on
+  }
+	delay(6000);                      //Wait for FONA to initialise
+  FONAserial.println("AT");         //This should help auto baud rate selection but we don't rely on it
   delay(80);
 	FONAserial.println("AT+IPREX=4800");  //Set the working FONA baud rate permanently
 	delay(250);
