@@ -9,7 +9,7 @@ This is Justine's 19 April 2020 firmware with the following fixes:
 
 The FONA 3G is known for auto baud rate detection being unreliable therefore the baud rate wasn't getting set correctly, resulting in the 'no dial tone' bug.
 
-An alternative method to set baud rate is to connect a serial via USB terminal (115200, 8-N-1) directly to the FONA USB socket and issue the command:
+An alternative method to set baud rate (non volatile memory) is to connect a serial via USB terminal (115200, 8-N-1) directly to the FONA USB socket and issue the command:
 
     AT+IPREX=4800
 
