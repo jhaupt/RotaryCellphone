@@ -13,4 +13,4 @@ An alternative method to set baud rate (non volatile memory) is to connect a ser
 
     AT+IPREX=4800
 
-Hack: because the pin used to receive FONA data (Arduino D53) is shared with the SPI SS pin, the ATmega will crash if the display updates while the FONA Tx pin sends data. Fortunately the display only updates while recalling names/numbers from memory so this should be a rare event.
+Hack: because the pin used to receive FONA data (Arduino D53) is shared with the SPI SS pin, the ATmega will crash if the display updates while the FONA Tx pin sends data. Fortunately the display only updates while recalling names/numbers from memory therefore this should be a rare occurrence.
