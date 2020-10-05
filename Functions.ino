@@ -14,12 +14,55 @@ void welcomeDisplay() {                                             // Put you s
     display.setCursor(3, 144); 
     display.print(F("CellPhone"));
     display.setFont();                                              // Back to standard (tiny) font
-    display.setCursor(2, 156);
-    display.print(F("made in Cambridge"));                          // Personalise here
-    display.setCursor(9, 168);
-    display.print(F("(0xxxx) xxxxxx"));
+    //display.setCursor(2, 156);
+    //display.print(F("made in Cambridge"));                        // Personalise here (old and new version)
+    display.setCursor(11, 156);
+    display.print(F("MAKE DIALLING"));
+    //display.setCursor(9, 168);
+    //display.print(F("(0xxxx) xxxxxx"));
+    display.setCursor(16, 168);
+    display.print(F("GREAT AGAIN"));
   } while (display.nextPage());
   forceUpdate();                                                    // Update Time & Caller ID on next main loop pass
+}
+
+void startupDisplay() {                                             // Put you startup/welcome/reset screen here
+  display.setRotation(0);                                           // add a help msg or personal message
+  display.setTextColor(GxEPD_BLACK);
+  display.firstPage();
+  String msg = " Starting ...";
+  do {
+    display.setFont(&FreeSerif9pt7b);
+    display.setCursor(0, 20); 
+    display.print(msg);
+    display.setCursor(0, 200); 
+    display.print(msg);
+    display.setFont();
+    display.setCursor(0, 40); 
+    display.print(F(" Hold C for pass- through mode"));
+  } while (display.nextPage());
+  forceUpdate();                                                    // Update Time & Caller ID on next main loop pass
+}
+
+void passthroughDisplay() {
+  delay(200);
+  FONAread(0);                            // Clear buffer
+  FONAserial.println(F("ATI"));           // Get FONA info, including IMEI and
+  buffer = FONAread(100);                 // store in buffer
+  byte index = buffer.indexOf("+GCAP");   // remove first 3 chars (ATI)
+  buffer = buffer.substring(3,index);     // and the FONA capabilities list
+  display.setRotation(1);                 // display 'passthrough', FONA info, IMEI etc
+  display.setTextColor(GxEPD_BLACK);
+  display.firstPage();
+  do {
+    display.setFont();                    // Standard (tiny) font
+    display.setCursor(0, 0);
+    display.println(F("         PASSTHROUGH MODE"));
+    display.println(buffer);   // Print FONA info (should be in buffer)
+    display.println(F("\n Connect at 9600 baud (8-N-1)"));
+    display.println(F("\n Cycle power to quit"));
+  } while (display.nextPage());
+  Serial.println(F("\r\nPASSTHROUGH MODE"));
 }
 
 void forceUpdate() {                                                // Force time & caller ID update on next main loop pass
@@ -470,7 +513,7 @@ void displayTime() {                            // Use e-paper partial update to
       display.setFont();                        // Back to default font
       dateStr = dowStr + ' ' + rtcDay + ' ' + monthStr;
       int dateStartX = int((104 - (dateStr.length() * 6)) / 2); // Centre the date horizontally
-      display.setCursor(dateStartX, 0);
+      display.setCursor(dateStartX, 1);
       display.print(dateStr);
       if (FONAsleepState == false) {
         display.setFont(&FreeMonoBold9pt7b);

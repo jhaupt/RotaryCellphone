@@ -101,7 +101,7 @@ bool CallOn = false;    //Set to "true" when a call is in progress, to determine
 bool newrotaryinput = false;
 float fholder1;
 int iholder;
-int clvl = 2;           // call level storage integer, 2 is the factory default, valid levels are 0-8
+int clvl = 3;           // call level storage integer, 2 is the factory default, valid levels are 0-8
 int rlvl = 4;           // ring level storage integer, 2 is the factory default, valid levels are 0-8
 float BattLevel;
 byte lowVccCount = 0;   // Count how many consective times a near exhausted battery condition has been read
@@ -229,8 +229,8 @@ digitalWrite(VibMotor, HIGH);
     delay(500);                            // FONA already on & assumed initialised
   }
 
-  display.init(115200);                    // Initialise and display a welcome screen
-  welcomeDisplay();
+  display.init(115200);                    // Initialise and display starting msg
+  startupDisplay();
   
   // Initialise the FONA
   FONAserial.println(F("AT"));             // Helps baud rate auto selection: https://en.wikipedia.org/wiki/Hayes_command_set#Autobaud
@@ -288,30 +288,22 @@ digitalWrite(VibMotor, HIGH);
   Serial.printf(F("SETUP COMPLETE\n\n"));
 
   // **** If C button held, go to UART passthrough mode for testing ****
-  // **** Will display FONA info and IMEI on ePaper display.        ****
-  // **** Use PuTTY at 115200 for communication (or similar),       ****
-  // **** anything type on the serial terminal will go to the FONA  ****
-  // **** and vice versa until the power is cycled.                 ****
+  // **** Will display FONA info and IMEI on ePaper display. Use    ****
+  // **** PuTTY at 19200 for communication (or similar), anything   ****
+  // **** typed on the terminal will go to the FONA & vice versa    ****
   if (digitalRead(ClearButton) == LOW) {
-    display.setRotation(1);                 // Display passthrough mode confirmation and FONA info, IMEI etc
-    display.setTextColor(GxEPD_BLACK);
-    display.firstPage();
-    do {
-      display.setFont();                    // Standard (tiny) font
-      display.setCursor(0, 0);
-      display.println(F("PASSTHROUGH MODE:"));
-      display.println(buffer);              // Print FONA info to the display, should be in buffer.
-      display.println(F("Cycle power to quit"));
-    } while (display.nextPage());
-    Serial.println(F("PASSTHROUGH MODE"));
+    passthroughDisplay();
+    Serial.flush();                         // Set USB serial to 9600 baud
+    Serial.begin(9600);                     // This is the fastest reliable speed without flow control
     while (true) {                          // Stay here forever (until power cycle)
       if (Serial.available())               // If anything comes in Serial (USB),
         FONAserial.write(Serial.read());    // read it and send it to the FONA
-
       if (FONAserial.available())           // If anything comes in from the FONA
         Serial.write(FONAserial.read());    // read it and send it out Serial (USB)
     }
-  }
+  } // **** The above runs until power is cycled ****
+
+  welcomeDisplay();
 }
 
 
