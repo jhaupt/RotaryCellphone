@@ -58,17 +58,18 @@ void passthroughDisplay() {
     display.setFont();                    // Standard (tiny) font
     display.setCursor(0, 0);
     display.println(F("         PASSTHROUGH MODE"));
-    display.println(buffer);   // Print FONA info (should be in buffer)
+    display.println(buffer);              // Print FONA info (should be in buffer)
     display.println(F("\n Connect at 9600 baud (8-N-1)"));
     display.println(F("\n Cycle power to quit"));
   } while (display.nextPage());
   Serial.println(F("\r\nPASSTHROUGH MODE"));
 }
 
-void forceUpdate() {                                                // Force time & caller ID update on next main loop pass
+void forceUpdate() {                        // Force last stored time & caller ID display on next main loop pass
   longTimer = 99;
   prevRtcMin = 99;
-  prevCallerID = "";                                                // Null string
+  prevCallerID = "";                        // Null string, forces CallerID display update
+  displayTime();                            // Get fresh fresh time/data
 }
 
 void RotaryIn(){  //Listen for pulses from the rotary dial. NO LOOP here. This runs once per iteration of "void loop", so the timing of other things in the main loop will affect this.
