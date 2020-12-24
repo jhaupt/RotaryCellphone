@@ -3,11 +3,11 @@
 
 This is Justine's 19 April 2020 firmware with the following fixes:
 
-* Tries to set FONA baud rate to 4800, once accepted this is stored in non-volatile memory.
-* Sets the receive pin for FONA data back to input after a display update (hack - see below).
+* Tests if the FONA baud rate is 4800, 9600 or 115200 baud, setting 4800 if required.
+* Sets the receive pin for FONA data back to input after a display write (hack - see below).
 * Fixes no tone for dialled zero.
 
-The FONA 3G is known for auto baud rate detection being unreliable therefore the baud rate wasn't getting set correctly, resulting in the 'no dial tone' bug.
+The FONA 3G is known for difficult auto baud rate detection (or at least not well documented). The baud rate wasn't getting set correctly, resulting in the *no dial tone*, or *unable to answer calls* bugs.
 
 An alternative method to set baud rate (non volatile memory) is to connect a serial via USB terminal (115200, 8-N-1) directly to the FONA USB socket and issue the command:
 
