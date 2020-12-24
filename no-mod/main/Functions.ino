@@ -146,7 +146,7 @@ void setFONAbaud() {
   buffer = FONAread(80);                     // and look for an OK response
   Serial.println(buffer);
   if (buffer.indexOf("OK") > -1) {           // baud rate already set, exit function
-    FONAserial.println(F("AT+IPR=4800"));    // optional: don't write to NVM unnecessarily but set temp rate to be sure
+    //FONAserial.println(F("AT+IPR=4800"));    // optional: don't write to NVM unnecessarily but set temp rate to be sure
     Serial.println(F("Baud rate already 4800"));
     return;
   }
