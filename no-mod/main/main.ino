@@ -91,24 +91,24 @@ const byte BGLED6 = 15;		//bargraph LED 5 (D10)
 const byte BGLED7 = 42;		//bargraph LED 6 (D9)
 const byte BGLED8 = 43;		//bargraph LED 7 (D8)
 const byte BGLED9 = 47;		//bargraph LED 8 (D7)
-const byte BGLED10 = 48;		//bargraph LED 9 (D6)
+const byte BGLED10 = 48;	//bargraph LED 9 (D6)
 const byte FONAWake = A0;
 const byte eink_ENA = 31;
 const byte Tx = 9;        //ATmega Tx pin (FONA Rx pin)
 
 //Define input pin
-const byte HookButton = 33;   //Make call, hangup call, or answer incoming call (momentary switch shorts to gnd)
-const byte ClearButton = 36;     //Clear number currently in dialout buffer from rotary dial (momentary switch gnd)
-const byte SignalButton = 34;     //Hold to check signal strengh
-const byte BatteryButton = 37;    //Hold to check battery level
-const byte SaButton = 35;    //Hold to check battery level
-const byte FnButton = 32;    //Hold to check battery level
-const byte ModeSwitch_631 = 20;    //SP3T switch positioned to append a certain area code to all calls
-const byte ModeSwitch_NP = 19;     //SP3T switch posiioned to "No Prepend" mode, in which a full 10-digit phone number is needed.
-const byte ModeSwitch_alt = 18;    //SP3T switch positioned to switch to taking the alternate function of each button.
-const byte RotaryPulseIn = 39;     //The pin that reads the state of the rotary dial.
-const byte PowerState = A2;        //Reads the power state of the FONA module, 1=ON
-const byte Rx = 53;                //ATmega Rx pin (FONA Tx pin)
+const byte HookButton = 33;     //Make call, hangup call, or answer incoming call (momentary switch shorts to gnd)
+const byte ClearButton = 36;    //Clear number currently in dialout buffer from rotary dial (momentary switch gnd)
+const byte SignalButton = 34;   //Hold to check signal strengh
+const byte BatteryButton = 37;  //Hold to check battery level
+const byte SaButton = 35;       //Hold to check battery level
+const byte FnButton = 32;       //Hold to check battery level
+const byte ModeSwitch_631 = 20; //SP3T switch positioned to append a certain area code to all calls
+const byte ModeSwitch_NP = 19;  //SP3T switch posiioned to "No Prepend" mode, in which a full 10-digit phone number is needed.
+const byte ModeSwitch_alt = 18; //SP3T switch positioned to switch to taking the alternate function of each button.
+const byte RotaryPulseIn = 39;  //The pin that reads the state of the rotary dial.
+const byte PowerState = A2;     //Reads the power state of the FONA module, 1=ON
+const byte Rx = 12;             //ATmega Rx pin (FONA Tx pin)
 
 SoftwareSerial FONAserial(Rx, Tx); //ATmega receive pin, ATmega transmit pin
 

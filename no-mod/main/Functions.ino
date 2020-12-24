@@ -142,17 +142,18 @@ void setFONAbaud() {
   FONAserial.begin(4800);                    // Try 4800 baud
   Serial.println(F("Trying 4800"));
   FONAread(0);                               // flush serial receive buffer
-  FONAserial.println("\nAT");                // send AT to the FONA
+  FONAserial.println("\nAT");                // send 'AT' to the FONA
   buffer = FONAread(80);                     // and look for an OK response
   Serial.println(buffer);
   if (buffer.indexOf("OK") > -1) {           // baud rate already set, exit function
+    FONAserial.println(F("AT+IPR=4800"));    // optional: don't write to NVM unnecessarily but set temp rate to be sure
     Serial.println(F("Baud rate already 4800"));
     return;
   }
   FONAserial.begin(9600);                    // or try 9600 baud
   Serial.println(F("Trying 9600"));
   FONAread(0);                               // flush serial receive buffer
-  FONAserial.println("\nAT");                // send AT to the FONA
+  FONAserial.println("\nAT");                // send 'AT' to the FONA
   buffer = FONAread(80);                     // and look for an OK respons
   Serial.println(buffer);
   if (buffer.indexOf("OK") > -1) {           // power-on baud rate was 9600
@@ -165,7 +166,7 @@ void setFONAbaud() {
   FONAserial.begin(115200);                  // or try ~115200 baud, the ATMEGA struggles with this
   Serial.println(F("Trying 115200"));
   FONAread(0);                               // flush serial receive buffer
-  FONAserial.println("\nAT");                // send AT to the FONA
+  FONAserial.println("\nAT");                // send 'AT' to the FONA
   buffer = FONAread(80);                     // and look for an OK respons
   Serial.println(buffer);
   if (buffer.indexOf("OK") > -1) {           // power-on baud rate was 115200
