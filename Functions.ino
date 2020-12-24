@@ -189,6 +189,52 @@ String FONAread(long int timeout) {
 }
 
 
+// Set FONA baud rate, target 9600 baud
+// Try common baud rates; 4800, 9600, ~115200
+// Because if baud rate has been stored to non-volatile memory, auto baud detection will not work.
+// Set the baud rate to non-volatile memory if necessary (AT+IPREX=0 for auto baud)
+void setFONAbaud() {
+  Serial.println(F("\nChecking FONA baud rate:"));
+  FONAserial.begin(9600);                    // Try 9600 baud
+  Serial.println(F("Trying 9600"));
+  FONAread(0);                               // flush serial receive buffer
+  FONAserial.println("\nAT");                // send AT to the FONA
+  buffer = FONAread(80);                     // and look for an OK response
+  Serial.println(buffer);
+  if (buffer.indexOf("OK") > -1) {           // baud rate already set, exit function
+    Serial.println(F("Baud rate already 9600\n"));
+    return;
+  }
+  FONAserial.begin(4800);                    // or try 4800 baud
+  Serial.println(F("Trying 4800"));
+  FONAread(0);                               // flush serial receive buffer
+  FONAserial.println("\nAT");                // send AT to the FONA
+  buffer = FONAread(80);                     // and look for an OK respons
+  Serial.println(buffer);
+  if (buffer.indexOf("OK") > -1) {           // power-on baud rate was 4800
+    FONAserial.println(F("AT+IPREX=9600"));  // set 9600 baud rate & exit function
+    FONAserial.begin(4800);
+    Serial.println(F("Baud rate set 9600\n"));
+    delay(250);
+    return;
+  }
+  FONAserial.begin(115200);                  // or try ~115200 baud, the ATMEGA struggles with this
+  Serial.println(F("Trying 115200"));
+  FONAread(0);                               // flush serial receive buffer
+  FONAserial.println("\nAT");                // send AT to the FONA
+  buffer = FONAread(80);                     // and look for an OK respons
+  Serial.println(buffer);
+  if (buffer.indexOf("OK") > -1) {           // power-on baud rate was 115200
+    FONAserial.println(F("AT+IPREX=9600"));  // set 9600 baud rate & exit function
+    FONAserial.begin(4800);
+    Serial.println(F("Baud rate set 9600\n"));
+    delay(250);
+    return;
+  }
+  Serial.println(F("FONA baud rate checks failed"));
+}
+
+
 void ClearBuffer(){  //Clear the currently entered phone number
   PNumber[0] = 99;   //Reset the phone number
   PNumber[1] = 99;

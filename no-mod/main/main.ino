@@ -61,6 +61,7 @@ byte n = 1;   //For counting up numbers from the rotary dial for entering a digi
 byte k = 0;   //For specifying the digit in a phone number
 unsigned long TimeSinceLastPulse = 0;   //used to see if enough of a delay has happened since the last pulse from the rotary dial to consider the sequence complete.
 char ReceivedChars[32]; // an array to store strings received over RS232 from FONA
+String buffer;          // String object buffer for incoming messages from FONA (Steve's method)
 byte PNumber[30]; // an array to store phone numbers as they're dialed with the rotary dial
 bool NewData = false;  // a flag to indicate whether a string has been received over RS232
 bool StillOn = false;  // a flag to indicate that th
@@ -145,8 +146,7 @@ void setup() {
   digitalWrite(FONAWake, HIGH);   //Default state for the FONA Power pin input
   delay(500);
 
-  Serial.begin(9600);
-  FONAserial.begin(115200);       //Try the FONA default baud rate first, set the working baud rate later
+  Serial.begin(9600);             //USB serial port
 
   //Check if FONA is ON, turn on if necessary.
   if (digitalRead(PowerState) == LOW) {
@@ -156,12 +156,7 @@ void setup() {
     while (PowerState == LOW) {}    //Wait for FONA to power on
   }
   delay(6000);                      //Wait for FONA to initialise
-  FONAserial.println("AT");         //This should help auto baud rate selection but we don't rely on it
-  delay(80);
-  FONAserial.println("AT+IPREX=4800");  //Set the working FONA baud rate permanently
-  delay(250);
-  FONAserial.begin(4800);               //and set the ATmega baud rate to match
-  delay(250);
+  setFONAbaud();                    //Test and set FONA baud rate if necessary
   FONAserial.println("AT+CVHU=0");	//Sets voice "hang up" control so that "ATH" disconnects voice calls.
   delay(80);
   FONAserial.println("AT+CSDVC=3");	//Set audio output channel. 3 is the speaker.

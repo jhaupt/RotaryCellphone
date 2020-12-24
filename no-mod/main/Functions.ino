@@ -91,9 +91,9 @@ void StarPoundRotaryIn() {  //Listen for pulses from the rotary dial. NO LOOP he
 
 
 
-void FONAserialReceive() {   //Listens over RS232, puts any string that's received into "ReceivedChars", and looks for some EndMarker character to change the NewData flag to True.
+void FONAserialReceive() {  //Listens over RS232, puts any string that's received into "ReceivedChars", and looks for some EndMarker character to change the NewData flag to True.
   static byte n = 0;
-  char EndMarker = 'O';   //This is the "K" from "OK", which the SIM5230 always returns after accepting a command.
+  char EndMarker = 'O';     //This is the "K" from "OK", which the SIM5230 always returns after accepting a command.
   char rc;
   int cnt;
   while (FONAserial.available() && NewData == false) {		//For some reason the conditional MUST be "FONAserial.available()" and not "FONAserial.available() > 0".
@@ -111,6 +111,71 @@ void FONAserialReceive() {   //Listens over RS232, puts any string that's receiv
       NewData = true;
     }
   }
+}
+
+// READ FONA serial (Steve's method):
+// Return all serial data available from the FONA as a String object. The argument is the time to wait (ms) for 
+// the first character, can be zero or 13ms upwards (the battery would go flat before max delay). A small wait is 
+// useful where there might be a delay in FONA response. Note the SoftwareSerial buffer length is 63 characters.
+// Thanks to Cristian Steib for the SIM800L library and Vittorio Esposito for SIM800L(revised) from whom this
+// method/function is derived: https://github.com/VittorioEsposito/Sim800L-Arduino-Library-revised
+String FONAread(long int timeout) {
+  long int timeOld = millis();
+  while (!(FONAserial.available()) && !(millis() > timeOld + timeout)) {
+    delay(13);
+  }
+  String str;
+  while(FONAserial.available()) {
+    if (FONAserial.available() > 0) {
+      str += (char) FONAserial.read();
+    }
+  }
+  return str;
+}
+
+// Set FONA baud rate, target 4800 baud
+// Try common baud rates; 4800, 9600, ~115200
+// Because if baud rate has been stored to non-volatile memory, auto baud detection will not work.
+// Set the baud rate to non-volatile memory if necessary (AT+IPREX=0 for auto baud)
+void setFONAbaud() {
+  Serial.println(F("\nChecking FONA baud rate:"));
+  FONAserial.begin(4800);                    // Try 4800 baud
+  Serial.println(F("Trying 4800"));
+  FONAread(0);                               // flush serial receive buffer
+  FONAserial.println("\nAT");                // send AT to the FONA
+  buffer = FONAread(80);                     // and look for an OK response
+  Serial.println(buffer);
+  if (buffer.indexOf("OK") > -1) {           // baud rate already set, exit function
+    Serial.println(F("Baud rate already 4800"));
+    return;
+  }
+  FONAserial.begin(9600);                    // or try 9600 baud
+  Serial.println(F("Trying 9600"));
+  FONAread(0);                               // flush serial receive buffer
+  FONAserial.println("\nAT");                // send AT to the FONA
+  buffer = FONAread(80);                     // and look for an OK respons
+  Serial.println(buffer);
+  if (buffer.indexOf("OK") > -1) {           // power-on baud rate was 9600
+    FONAserial.println(F("AT+IPREX=4800"));  // set 4800 baud rate & exit function
+    FONAserial.begin(4800);
+    Serial.println(F("Baud rate set 4800"));
+    delay(250);
+    return;
+  }
+  FONAserial.begin(115200);                  // or try ~115200 baud, the ATMEGA struggles with this
+  Serial.println(F("Trying 115200"));
+  FONAread(0);                               // flush serial receive buffer
+  FONAserial.println("\nAT");                // send AT to the FONA
+  buffer = FONAread(80);                     // and look for an OK respons
+  Serial.println(buffer);
+  if (buffer.indexOf("OK") > -1) {           // power-on baud rate was 115200
+    FONAserial.println(F("AT+IPREX=4800"));  // set 4800 baud rate & exit function
+    FONAserial.begin(4800);
+    Serial.println(F("Baud rate set 4800"));
+    delay(250);
+    return;
+  }
+  Serial.println(F("FONA baud rate checks failed"));
 }
 
 void ClearBuffer() { //Clear the currently entered phone number

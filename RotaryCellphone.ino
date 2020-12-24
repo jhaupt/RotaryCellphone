@@ -232,13 +232,8 @@ digitalWrite(VibMotor, HIGH);
   display.init(115200);                    // Initialise and display starting msg
   startupDisplay();
   
-  // Initialise the FONA
-  FONAserial.println(F("AT"));             // Helps baud rate auto selection: https://en.wikipedia.org/wiki/Hayes_command_set#Autobaud
-  Serial.println(FONAread(50));            // wait up to 50ms for start of reply then send reply over USB serial
-  delay(50);
-  FONAserial.println(F("AT+IPREX=9600"));  // Set baud rate on phone, takes a while this command.
-  delay(200);                              // Not interested in the response, just clear the buffer.
-  FONAread(0);
+  setFONAbaud();                           // Test and set FONA baud rate if necessary
+  FONAread(0);                             // Clear the serial buffer
   FONAserial.println(F("ATI"));            // Get FONA identification information, including IMEI and
   buffer = FONAread(50);                   // store in buffer, it might be useful.
   Serial.println(buffer);
