@@ -113,6 +113,9 @@ unsigned int longTimer = 0;     // loop counter to do something periodically, lo
 unsigned int veryLongTimer = 0; // loop counter to send FONA to sleep after a few mins of inactivity.
 byte ringTimer = 0;             // Timer (seconds) for ringing alert, e.g. LED, vibration.
 bool FONAsleepState = false;    // Flag to check for sleep mode for FONA (can still receive calls during sleep)
+bool FONApresent = false;       // Used if communication with FONA can't be established
+int firstDateLine = 0;          // first usable line of pixels for date display (default 0), increase where top portion of display is damaged but lower portion is usuable
+int firstNumbLine = 70;         // first usable line of pixels for stored phone number display (default 70), increase where top portion of display is damaged
 
 byte rtcYear = 0;
 byte rtcMonth;

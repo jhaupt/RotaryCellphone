@@ -1,25 +1,23 @@
-void welcomeDisplay() {                                             // Put you startup/welcome/reset screen here
-  display.setRotation(0);                                           // add a help msg or personal message
+void welcomeDisplay() {                                               // Put you startup/welcome/reset screen here
+  display.setRotation(0);                                             // add a help msg or personal message
   display.setTextColor(GxEPD_BLACK);
-  display.firstPage();                                              // Display a welcome graphic
+  display.firstPage();                                                // Display a welcome graphic
   do {
-    if (FONAsleepState == true)
-      display.drawBitmap(0, 30, sleepy_moon, 104, 76, GxEPD_BLACK); // Set the array name to the preferred sleep bitmap image
-    else
-      display.drawBitmap(0, 30, rotary_dial, 104, 76, GxEPD_BLACK); // Set the array name to the preferred active bitmap image
-    display.setFont(&FreeSerif9pt7b);
-    display.setCursor(2, 122); 
-    display.print(F("Rotary"));
-    display.setFont(&FreeMonoBold9pt7b);
-    display.setCursor(3, 144); 
-    display.print(F("CellPhone"));
+    if (firstDateLine == 0) {                                         // Don't write logo if upper portion of display is damaged
+      if (FONAsleepState == true)                                     // Alternate logo if FONA is in sleep state.
+        display.drawBitmap(0, 30, sleepy_moon, 104, 76, GxEPD_BLACK); // Set the array name to the preferred sleep bitmap image
+      else
+        display.drawBitmap(0, 30, rotary_dial, 104, 76, GxEPD_BLACK); // Set the array name to the preferred active bitmap image
+      display.setFont(&FreeSerif9pt7b);
+      display.setCursor(2, 122); 
+      display.print(F("Rotary"));
+      display.setFont(&FreeMonoBold9pt7b);
+      display.setCursor(3, 144); 
+      display.print(F("CellPhone"));
+    }
     display.setFont();                                              // Back to standard (tiny) font
-    //display.setCursor(2, 156);
-    //display.print(F("made in Cambridge"));                        // Personalise here (old and new version)
     display.setCursor(11, 156);
-    display.print(F("MAKE DIALLING"));
-    //display.setCursor(9, 168);
-    //display.print(F("(0xxxx) xxxxxx"));
+    display.print(F("MAKE DIALLING"));                              // Personalise here
     display.setCursor(16, 168);
     display.print(F("GREAT AGAIN"));
   } while (display.nextPage());
@@ -188,7 +186,6 @@ String FONAread(long int timeout) {
   return str;
 }
 
-
 // Set FONA baud rate, target 9600 baud
 // Try common baud rates; 4800, 9600, ~115200
 // Because if baud rate has been stored to non-volatile memory, auto baud detection will not work.
@@ -204,6 +201,7 @@ void setFONAbaud() {
   if (buffer.indexOf("OK") > -1) {           // baud rate already set, exit function
     //FONAserial.println(F("AT+IPR=9600"));    // optional: don't write to NVM unnecessarily but set temp rate to be sure
     Serial.println(F("Baud rate already 9600\n"));
+    FONApresent = true;
     return;
   }
   FONAserial.begin(4800);                    // or try 4800 baud
@@ -216,6 +214,7 @@ void setFONAbaud() {
     FONAserial.println(F("AT+IPREX=9600"));  // set 9600 baud rate & exit function
     FONAserial.begin(4800);
     Serial.println(F("Baud rate set 9600\n"));
+    FONApresent = true;
     delay(250);
     return;
   }
@@ -229,6 +228,7 @@ void setFONAbaud() {
     FONAserial.println(F("AT+IPREX=9600"));  // set 9600 baud rate & exit function
     FONAserial.begin(4800);
     Serial.println(F("Baud rate set 9600\n"));
+    FONApresent = true;
     delay(250);
     return;
   }
@@ -554,22 +554,24 @@ void displayTime() {                            // Use e-paper partial update to
     Serial.println(F("Time update"));
     //Serial.print(F("RTC: "));                 // For debugging only: send date/time over serial USB
     //Serial.printf("%d/%d/%d  %02d:%02d\n", rtcDay, rtcMonth, rtcYear+2000, rtcHour, rtcMin);
-    display.setPartialWindow(0, 0, 104, 27);    // Partial update top 27 rows of pixels
+    display.setPartialWindow(0, firstDateLine, 104, 27);  // Partial update top 27 rows of pixels
     display.firstPage();  //this function is called before every time ePaper is updated.
     do {
       display.fillScreen(GxEPD_WHITE);
       display.setFont();                        // Back to default font
       dateStr = dowStr + ' ' + rtcDay + ' ' + monthStr;
       int dateStartX = int((104 - (dateStr.length() * 6)) / 2); // Centre the date horizontally
-      display.setCursor(dateStartX, 1);
+      display.setCursor(dateStartX, firstDateLine + 2);
+      if (FONApresent == false)
+        dateStr = F("No FONA comms");
       display.print(dateStr);
       if (FONAsleepState == false) {
         display.setFont(&FreeMonoBold9pt7b);
-        display.setCursor(24, 23);
+        display.setCursor(24, firstDateLine + 24);
         display.printf("%02d:%02d", rtcHour, rtcMin);
       }
       else {
-        display.setCursor(11, 15);
+        display.setCursor(11, firstDateLine + 15);
         display.printf("hold C to wake");
       }
     } while (display.nextPage());

@@ -37,7 +37,7 @@ void DisplayContacts(){
       display.setFont();  //Back to default font
       display.setCursor(15, 45);
       display.print(F("CONTACTS A-C:"));
-      display.setCursor(0, 70);
+      display.setCursor(0, firstNumbLine);
       display.print(F("1: Atreides "));    
     } while (display.nextPage());
   }
@@ -50,12 +50,18 @@ void DisplayContacts(){
       display.setFont();  //Back to default font
       display.setCursor(15, 45);
       display.print(F("CONTACTS D-F:"));
-      display.setCursor(0, 70);
+      display.setCursor(0, firstNumbLine);
       display.print(F("1: Dennis"));
-      display.setCursor(0, 80);
-      display.print(F("2: Duncan"));    
-      display.setCursor(0, 90);
-      display.print(F("3: Frank"));        
+      display.setCursor(0, firstNumbLine + 10);
+      display.print(F("2: Duncan"));
+      display.setCursor(0, firstNumbLine + 20);
+      display.print(F("3: Edward"));
+      display.setCursor(0, firstNumbLine + 30);
+      display.print(F("4: Entebbe"));
+      display.setCursor(0, firstNumbLine + 40);
+      display.print(F("5: Frank"));
+      display.setCursor(0, firstNumbLine + 50);
+      display.print(F("6: Fred"));
     } while (display.nextPage());
   }
 
@@ -67,9 +73,9 @@ void DisplayContacts(){
       display.setFont();  //Back to default font
       display.setCursor(15, 45);
       display.print(F("CONTACTS G-I:"));
-      display.setCursor(0, 70);
+      display.setCursor(0, firstNumbLine);
       display.print(F("1: Ghanima"));  
-      display.setCursor(0, 80);
+      display.setCursor(0, firstNumbLine + 10);
       display.print(F("2: Irulan"));      
     } while (display.nextPage());
   }
@@ -82,9 +88,9 @@ void DisplayContacts(){
       display.setFont();  //Back to default font
       display.setCursor(15, 45);
       display.print(F("CONTACTS J-L:"));
-      display.setCursor(0, 70);
+      display.setCursor(0, firstNumbLine);
       display.print(F("1: Jessica"));
-      display.setCursor(0, 80);
+      display.setCursor(0, firstNumbLine + 10);
       display.print(F("2: Leto"));
     } while (display.nextPage());
   }
@@ -108,9 +114,9 @@ void DisplayContacts(){
       display.setFont();  //Back to default font
       display.setCursor(15, 45);
       display.print(F("CONTACTS P-S:"));
-      display.setCursor(0, 70);
+      display.setCursor(0, firstNumbLine);
       display.print(F("1: Paul"));  
-      display.setCursor(0, 80);
+      display.setCursor(0, firstNumbLine + 10);
       display.print(F("2: Stilgar"));      
     } while (display.nextPage());
   }
@@ -123,7 +129,7 @@ void DisplayContacts(){
       display.setFont();  //Back to default font
       display.setCursor(15, 45);
       display.print(F("CONTACTS T-V:"));
-      display.setCursor(0, 70);
+      display.setCursor(0, firstNumbLine);
       display.print(F("4: My Voicemail"));  
     } while (display.nextPage());
   }
@@ -141,7 +147,7 @@ void DisplayContacts(){
 }
 
 void RetrieveContact(){
-  if (pagenum == 2){
+  if (pagenum == 2){      //Contacts ABC
     if (PNumber[0] == 1){  
       PNumber[0] = 1;
       PNumber[1] = 2;
@@ -155,7 +161,7 @@ void RetrieveContact(){
       PNumber[9] = 7;
     }
   }
-  if (pagenum == 3){
+  if (pagenum == 3){      //Contacts DEF
     if (PNumber[0] == 1){  
       PNumber[0] = 1;
       PNumber[1] = 2;
@@ -192,8 +198,44 @@ void RetrieveContact(){
       PNumber[8] = 6;
       PNumber[9] = 7;
     }
+    if (PNumber[0] == 4){  
+      PNumber[0] = 1;
+      PNumber[1] = 2;
+      PNumber[2] = 3;
+      PNumber[3] = 1;
+      PNumber[4] = 2;
+      PNumber[5] = 3;
+      PNumber[6] = 4;
+      PNumber[7] = 5;
+      PNumber[8] = 6;
+      PNumber[9] = 7;
+    }
+    if (PNumber[0] == 5){  
+      PNumber[0] = 1;
+      PNumber[1] = 2;
+      PNumber[2] = 3;
+      PNumber[3] = 1;
+      PNumber[4] = 2;
+      PNumber[5] = 3;
+      PNumber[6] = 4;
+      PNumber[7] = 5;
+      PNumber[8] = 6;
+      PNumber[9] = 7;
+    }
+    if (PNumber[0] == 6){  
+      PNumber[0] = 1;
+      PNumber[1] = 2;
+      PNumber[2] = 3;
+      PNumber[3] = 1;
+      PNumber[4] = 2;
+      PNumber[5] = 3;
+      PNumber[6] = 4;
+      PNumber[7] = 5;
+      PNumber[8] = 6;
+      PNumber[9] = 7;
+    }
   }
-  if (pagenum == 4){
+  if (pagenum == 4){      //Contacts GHI
     if (PNumber[0] == 1){  
       PNumber[0] = 1;
       PNumber[1] = 2;
@@ -219,7 +261,7 @@ void RetrieveContact(){
       PNumber[9] = 7;
     }
   }
-  if (pagenum == 5){
+  if (pagenum == 5){      //Contacts JKL
     if (PNumber[0] == 1){  
         PNumber[0] = 1;
       PNumber[1] = 2;
@@ -257,7 +299,7 @@ void RetrieveContact(){
       PNumber[9] = 7;
     }
   }
-  if (pagenum == 6){
+  if (pagenum == 6){      //Contacts MNO
     if (PNumber[0] == 1){  
       PNumber[0] = 1;
       PNumber[1] = 2;
@@ -295,7 +337,7 @@ void RetrieveContact(){
       PNumber[9] = 7;
     }
   }
-  if (pagenum == 7){
+  if (pagenum == 7){      //Contacts PRS
     if (PNumber[0] == 1){
       PNumber[0] = 1;
       PNumber[1] = 2;
@@ -333,7 +375,7 @@ void RetrieveContact(){
       PNumber[9] = 7;
     }
   }
-  if (pagenum == 8){
+  if (pagenum == 8){      //Contacts TUV
     if (PNumber[0] == 1){  
       PNumber[0] = 1;
       PNumber[1] = 2;
@@ -383,7 +425,7 @@ void RetrieveContact(){
       PNumber[9] = 7;
     }
   }
-  if (pagenum == 9){
+  if (pagenum == 9){      //Contacts WXY
     if (PNumber[0] == 1){  
       PNumber[0] = 1;
       PNumber[1] = 2;
