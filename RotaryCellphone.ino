@@ -361,10 +361,13 @@ void loop() {
   // **** fast check battery is OK or shutdown   ****
   if (longTimer > 10) {                                           // Do something here periodically approx ever 10s...
     longTimer = 0;                                                // We can do something that takes more than 5ms only if the dial not in use.
-    if (StartTimeSinceLastPulse == false && StillOn == false && FONAsleepState == false) { // do periodic stuff if the dial is not in use and the FONA not sleeping:
-      displayCID();                                               // Display last caller ID, or 'none', or 'witheld. Tiny font to allow 16 digits.
-      displayTime();                                              // Display date & time if the minute has changed.
-      if (readVcc() > 341) {                                      // *** GRACEFUL POWERDOWN when battery is almost exhausted ***
+    if (StartTimeSinceLastPulse == false && StillOn == false) {   // do periodic stuff if the dial is not in use:
+      if (FONAsleepState == false) {                              // Update time and caller ID if the dial is not in use and the FONA not sleeping:
+        displayCID();                                             // Display last caller ID, or 'none', or 'witheld. Tiny font to allow 16 digits.
+        displayTime();                                            // Display date & time if the minute has changed.
+      }
+      //Serial.println(readVcc());                                // Optional: use this to calibrate the ATmega ADC reference
+      if (readVcc() > 341) {                                      // Fast check battery voltage using ATmega ADC, GRACEFUL POWERDOWN when battery almost exhausted
         lowVccCount++;                                            // Check whether battery voltage has consistantly been very low (< 3.3V). 
         Serial.printf("\nLOW BATTERY WARNING %d\n", lowVccCount); // If so; powerdown FONA, display powerdown time, blink hook LED every 4s.
         if (lowVccCount > 5) {                                    // Note: 3.3V is the min supply voltage for the FONA,

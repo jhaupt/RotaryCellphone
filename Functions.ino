@@ -826,7 +826,7 @@ void FONAwake() {
 // over approx a 1 min period. This is minimum supply voltage for the FONA, it helps protect the battery and the FONA
 // will restart once on charge and Vcc rises above 3.5V. The ATmega is put into sleep except for a fast battery check and
 // brief hook LED flash once every 4s.
-void shutdownPhone () {                       // Powerdown gracefully and display the shutdown time
+void shutdownPhone() {                       // Powerdown gracefully and display the shutdown time
   FONAserial.println(F("AT+CPOF"));           // Poweroff the FONA
   display.setPartialWindow(0, 0, 104, 27);    // Partial update top 27 rows of pixels
   display.firstPage();                        // this function is called before every time ePaper is updated.
