@@ -1,4 +1,10 @@
 # RotaryCellphone
+
+NOTE: Please use Steve Carey's excellent firmware instead. I endorse it as the "official" 3G firmware: https://github.com/riosil/RotaryCellphone/tree/master/no-mod/main
+
+
+************
+
 Firmware for the Open Source Rotary Cellphone
 
 Regarding references to "ModeSwitch_631". The mode switch is a SP3T switch which changes the operating mode of the phone. The primary mode, as listed in this code,is "631", which is my area code. In this mode, 631 is prepended automatically to any 7 digit numbers dialed. All instances of this must be changed to your preferred area code. The other two modes are "NP" and "Alt". NP stands for "no prepend", to enter full 10-digit numbers, and "Alt" is the alternate mode. To minimize the total number of switches, the function of the bottom four buttons on the phone changes depending on the position of the mode switch. 
