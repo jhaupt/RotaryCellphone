@@ -3,7 +3,7 @@
 NOTE: Please use Steve Carey's excellent firmware instead. I endorse it as the "official" 3G firmware: https://github.com/riosil/RotaryCellphone/tree/master/no-mod/main
 
 
-************
+******************************************************
 
 Firmware for the Open Source Rotary Cellphone
 
