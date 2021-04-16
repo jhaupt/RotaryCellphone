@@ -2,6 +2,8 @@
 
 ![Two finished RotaryCellphones](images/two_phones.jpg "Two finished RotaryCellphones")
 
+![Molded leather cases](images/leather_cases.jpg "Molded leather cases")
+
 The motivation behind this fork is to complete the original firmware (April 2020) to a good working state with a range of basic features while keeping to the original framework (e.g. North American area code prepend) as closely as possible. 
 
 Secondary motivation is to contribute something back to Justine for making this excellent 3G project open source.
